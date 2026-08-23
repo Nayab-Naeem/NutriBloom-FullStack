@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+/* Your custom colors */
+@theme {
+  --color-strong-cyan: #55dde0;
+  --color-baltic-blue: #33658a;
+  --color-charcoal-blue: #2f4858;
+  --color-honey-bronze: #f6ae2d;
+  --color-blaze-orange: #f26419;
+}
