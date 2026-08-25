@@ -35,3 +35,165 @@ html, body, #root {
   min-height: 100vh;
   transition: background-color 0.5s ease;
 }
+
+.growth-animation {
+  position: relative;
+  width: 100%;
+  max-width: 32rem;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 1rem;
+  background: radial-gradient(circle at 50% 35%, rgb(255 255 255 / 12%), rgb(0 0 0 / 22%));
+}
+
+.growth-animation::after {
+  position: absolute;
+  right: 10%;
+  bottom: 9%;
+  left: 10%;
+  height: 1px;
+  background: rgb(255 255 255 / 18%);
+  content: '';
+}
+
+.growth-forest,
+.growth-ocean,
+.growth-cosmic {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.growth-caption {
+  position: absolute;
+  bottom: 7%;
+  color: rgb(255 255 255 / 55%);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.forest-tree {
+  position: relative;
+  width: calc(9rem + var(--growth) * 3rem);
+  height: calc(12rem + var(--growth) * 3rem);
+  transform: translateY(5%);
+  transition: width 900ms ease, height 900ms ease;
+}
+
+.forest-trunk {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 1.4rem;
+  height: 48%;
+  border-radius: 999px 999px 0 0;
+  background: linear-gradient(90deg, #6d3618, #b66a32, #6d3618);
+  transform: translateX(-50%);
+}
+
+.forest-crown {
+  position: absolute;
+  left: 50%;
+  border-radius: 50% 50% 45% 45%;
+  background: radial-gradient(circle at 35% 25%, #86efac, #22c55e 55%, #166534);
+  box-shadow: 0 0 2rem rgb(34 197 94 / 25%);
+  transform: translateX(-50%);
+}
+
+.forest-crown-bottom { top: 35%; width: 78%; height: 45%; }
+.forest-crown-middle { top: 18%; width: 61%; height: 40%; }
+.forest-crown-top { top: 3%; width: 43%; height: 32%; }
+
+.ocean-fish {
+  position: relative;
+  width: calc(9rem + var(--growth) * 5rem);
+  height: calc(5rem + var(--growth) * 3rem);
+  animation: fish-swim 3.5s ease-in-out infinite;
+  transition: width 900ms ease, height 900ms ease;
+}
+
+.fish-body {
+  position: absolute;
+  top: 10%;
+  right: 7%;
+  width: 73%;
+  height: 80%;
+  border-radius: 50% 48% 48% 50%;
+  background: linear-gradient(145deg, #67e8f9, #0891b2 65%, #155e75);
+  box-shadow: 0 0 2rem rgb(34 211 238 / 35%);
+}
+
+.fish-tail {
+  position: absolute;
+  top: 20%;
+  left: 0;
+  width: 35%;
+  height: 60%;
+  background: #0e7490;
+  clip-path: polygon(100% 50%, 0 0, 12% 50%, 0 100%);
+}
+
+.fish-fin {
+  position: absolute;
+  width: 30%;
+  height: 35%;
+  background: #06b6d4;
+  clip-path: polygon(0 100%, 100% 0, 78% 100%);
+}
+
+.fish-fin-top { top: -18%; left: 42%; }
+.fish-fin-bottom { bottom: -18%; left: 43%; transform: rotate(180deg); }
+
+.fish-eye {
+  position: absolute;
+  top: 27%;
+  left: 16%;
+  width: 0.7rem;
+  height: 0.7rem;
+  border: 0.2rem solid white;
+  border-radius: 50%;
+  background: #082f49;
+  box-shadow: 0 0 0 0.1rem rgb(8 47 73 / 70%);
+}
+
+.ocean-bubble {
+  position: absolute;
+  border: 1px solid rgb(186 230 253 / 60%);
+  border-radius: 50%;
+  animation: bubble-rise 3s ease-in infinite;
+}
+
+.bubble-one { top: 27%; left: 23%; width: 0.7rem; height: 0.7rem; }
+.bubble-two { top: 42%; left: 16%; width: 0.4rem; height: 0.4rem; animation-delay: 1.2s; }
+
+.cosmic-planet {
+  position: relative;
+  width: calc(7rem + var(--growth) * 4rem);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 25%, #fed7aa, #f97316 48%, #7c2d12);
+  box-shadow: 0 0 3rem rgb(249 115 22 / 35%);
+  transition: width 900ms ease;
+}
+
+.cosmic-orbit {
+  position: absolute;
+  width: calc(13rem + var(--growth) * 5rem);
+  height: calc(5rem + var(--growth) * 2rem);
+  border: 1px solid rgb(251 191 36 / 75%);
+  border-radius: 50%;
+  transform: rotate(-25deg);
+  animation: orbit-spin 8s linear infinite;
+}
+
+.cosmic-orbit-two { width: 70%; height: 120%; border-color: rgb(244 114 182 / 55%); transform: rotate(65deg); animation-direction: reverse; }
+.cosmic-crater { position: absolute; border-radius: 50%; background: rgb(124 45 18 / 35%); }
+.crater-one { top: 25%; left: 60%; width: 1rem; height: 0.6rem; }
+.crater-two { top: 62%; left: 27%; width: 1.4rem; height: 0.8rem; }
+
+@keyframes fish-swim { 0%, 100% { transform: translateX(-3%) rotate(-2deg); } 50% { transform: translateX(3%) rotate(2deg); } }
+@keyframes bubble-rise { 0% { opacity: 0; transform: translateY(2rem); } 35%, 75% { opacity: 0.8; } 100% { opacity: 0; transform: translateY(-5rem); } }
+@keyframes orbit-spin { from { transform: rotate(-25deg) rotateZ(0deg); } to { transform: rotate(-25deg) rotateZ(360deg); } }
