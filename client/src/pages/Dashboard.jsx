@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { logout } from '../lib/auth';
 import GrowthAnimation from '../components/modes/GrowthAnimation';
+import AIFoodLogger from '../components/AIFoodLogger';
+import DashboardFoodCard from '../components/DashboardFoodcard';
+import AIMealSuggester from '../components/AIMealSuggester';
 function Dashboard() {
   // Temporary local state (later we will get this from Supabase)
   const [caloriesEaten, setCaloriesEaten] = useState(850);
   const calorieGoal = 2000;
-  const [foodInput, setFoodInput] = useState('');
-  
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [foodItems, setFoodItems] = useState([]);
 
 
   const progress = Math.min(caloriesEaten / calorieGoal, 1); // 0 to 1
@@ -42,44 +42,25 @@ function Dashboard() {
     window.location.href = '/';
   };
 
-  const handleAddMeal = async (e) => {
-  e.preventDefault();
-  if (!foodInput.trim()) return;
+  const handleLogSuccess = (foodItem) => {
+    const itemWithId = {
+      id: crypto.randomUUID(),
+      ...foodItem,
+    };
 
-  setLoading(true);
-  setError('');
+    setFoodItems((prev) => [itemWithId, ...prev]);
+    setCaloriesEaten((prev) => prev + itemWithId.calories);
+  };
 
-  try {
-    const response = await fetch('/api/estimate-calories', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ description: foodInput }),
+  const handleDeleteFood = (id) => {
+    setFoodItems((prev) => {
+      const item = prev.find((food) => food.id === id);
+      if (item) {
+        setCaloriesEaten((calories) => Math.max(0, calories - item.calories));
+      }
+      return prev.filter((food) => food.id !== id);
     });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || 'Something went wrong');
-    }
-
-    // Add real calories from AI
-    setCaloriesEaten((prev) => prev + data.calories);
-    setFoodInput('');
-    
-    console.log('AI Result:', data); // for testing
-  } catch (err) {
-    console.error(err);
-    setError(
-      err instanceof TypeError && err.message === 'Failed to fetch'
-        ? 'Cannot reach the AI server. Start the server with "npm start" from the server folder.'
-        : err.message || 'Failed to estimate calories'
-    );
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   return (
     <div className="min-h-screen text-white">
@@ -158,41 +139,42 @@ function Dashboard() {
                 />
               </div>
             </div>
-{/* Add Meal Form */}
-<div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-  <h3 className="text-lg font-medium mb-4 text-white/80">Add Meal</h3>
-
-  {error && (
-    <div className="mb-4 p-3 rounded-lg bg-red-500/20 border border-red-500/40 text-red-300 text-sm">
-      {error}
-    </div>
-  )}
-
-  <form onSubmit={handleAddMeal} className="space-y-4">
-    <input
-      type="text"
-      value={foodInput}
-      onChange={(e) => setFoodInput(e.target.value)}
-      placeholder="What did you eat? (e.g. 2 eggs and toast)"
-      className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 focus:outline-none focus:border-strong-cyan transition"
-      disabled={loading}
-    />
-
-    <button
-      type="submit"
-      disabled={loading}
-      className="w-full py-3 rounded-xl bg-strong-cyan text-charcoal-blue font-semibold hover:bg-strong-cyan/90 transition disabled:opacity-60"
-    >
-      {loading ? 'Calculating...' : 'Add Meal'}
-    </button>
-  </form>
-
-  <p className="text-xs text-white/40 mt-3">
-    Powered by Google Gemini AI
-  </p>
-</div>
+            <AIFoodLogger onLogSuccess={handleLogSuccess} />
         </div>
         </div>
+
+           <AIMealSuggester 
+          foodLogs={foodItems} 
+        dailyGoals={{ calories: 2000, protein: 150, carbs: 200, fat: 65 }}
+          onMealLogged={handleLogSuccess}
+      />
+
+        <section className="mt-12">
+          <div className="flex items-end justify-between gap-4 mb-5">
+            <div>
+              <h2 className="text-xl font-semibold text-white/90">AI Food Log</h2>
+              <p className="text-sm text-white/50 mt-1">
+                Meals analyzed today: {foodItems.length}
+              </p>
+            </div>
+          </div>
+
+          {foodItems.length === 0 ? (
+            <div className="border border-dashed border-white/20 rounded-2xl p-8 text-center text-white/50">
+              Your analyzed meals will appear here.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {foodItems.map((foodItem) => (
+                <DashboardFoodCard
+                  key={foodItem.id}
+                  foodItem={foodItem}
+                  onDelete={handleDeleteFood}
+                />
+              ))}
+            </div>
+          )}
+        </section>
       </main>
     </div>
   );
