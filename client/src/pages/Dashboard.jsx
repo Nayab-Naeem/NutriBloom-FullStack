@@ -50,7 +50,7 @@ function Dashboard() {
   setError('');
 
   try {
-    const response = await fetch('http://localhost:5000/api/estimate-calories', {
+    const response = await fetch('/api/estimate-calories', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -71,7 +71,11 @@ function Dashboard() {
     console.log('AI Result:', data); // for testing
   } catch (err) {
     console.error(err);
-    setError(err.message || 'Failed to estimate calories');
+    setError(
+      err instanceof TypeError && err.message === 'Failed to fetch'
+        ? 'Cannot reach the AI server. Start the server with "npm start" from the server folder.'
+        : err.message || 'Failed to estimate calories'
+    );
   } finally {
     setLoading(false);
   }

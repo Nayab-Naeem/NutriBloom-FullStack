@@ -5,7 +5,8 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const router = express.Router();
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const apiKey = process.env.GEMINI_API_KEY?.trim();
+const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
 router.post('/estimate-calories', async (req, res) => {
   try {
@@ -13,6 +14,12 @@ router.post('/estimate-calories', async (req, res) => {
 
     if (!description || !description.trim()) {
       return res.status(400).json({ error: 'Food description is required' });
+    }
+
+    if (!genAI) {
+      return res.status(503).json({
+        error: 'AI service is not configured. Add a valid GEMINI_API_KEY to server/.env.',
+      });
     }
 
     const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
@@ -35,9 +42,12 @@ Respond with ONLY a valid JSON object in this exact format:
     res.json(data);
   } catch (error) {
     console.error('Full Error:', error);
+    const isAuthError = error.message?.includes('401') ||
+      error.message?.includes('ACCESS_TOKEN_TYPE_UNSUPPORTED');
     res.status(500).json({ 
-      error: 'Failed to estimate calories',
-      details: error.message 
+      error: isAuthError
+        ? 'AI authentication failed. Replace GEMINI_API_KEY with a valid Google AI Studio API key.'
+        : 'Failed to estimate calories',
     });
   }
 });
