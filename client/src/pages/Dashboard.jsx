@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { logout } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import GrowthAnimation from '../components/modes/GrowthAnimation';
 import AIFoodLogger from '../components/AIFoodLogger';
 import DashboardFoodCard from '../components/DashboardFoodcard';
 import AIMealSuggester from '../components/AIMealSuggester';
+import Navbar from '../components/layout/Navbar';
 
 function Dashboard() {
   const [foodItems, setFoodItems] = useState([]);
@@ -84,16 +84,6 @@ function Dashboard() {
     return () => observer.disconnect();
   }, []);
 
-  const changeMode = (nextMode) => {
-    document.documentElement.setAttribute('data-mode', nextMode);
-    setMode(nextMode);
-  };
-
-  const handleLogout = async () => {
-    await logout();
-    window.location.href = '/';
-  };
-
   // 🎯 Save updated calorie target to Supabase
   const handleSaveGoal = async (e) => {
     e.preventDefault();
@@ -139,22 +129,7 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen text-white">
-      {/* Header */}
-      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-4 sm:px-6 py-4 border-b border-white/10">
-        <h1 className="text-2xl font-bold text-strong-cyan">NutriBloom</h1>
-
-        <div className="flex w-full sm:w-auto items-center gap-2 sm:gap-3">
-          <div className="flex flex-1 gap-1 bg-black/30 p-1 rounded-lg text-sm">
-            <button onClick={() => changeMode('forest')} className="flex-1 px-2 sm:px-3 py-1.5 rounded-md hover:bg-white/10 transition">Forest</button>
-            <button onClick={() => changeMode('ocean')} className="flex-1 px-2 sm:px-3 py-1.5 rounded-md hover:bg-white/10 transition">Ocean</button>
-            <button onClick={() => changeMode('cosmic')} className="flex-1 px-2 sm:px-3 py-1.5 rounded-md hover:bg-white/10 transition">Cosmic</button>
-          </div>
-
-          <button onClick={handleLogout} className="shrink-0 px-3 sm:px-4 py-2 rounded-lg bg-red-500/20 border border-red-500/40 text-red-300 hover:bg-red-500/30 transition text-sm font-medium">
-            Logout
-          </button>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Main Content */}
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">

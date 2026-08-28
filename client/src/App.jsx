@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ProtectedRoute from './components/ProtectedRoute';
 import Dashboard from './pages/Dashboard';
+import History from './pages/History';
 
 function App() {
   const [mode, setMode] = useState(() => {
@@ -39,13 +40,21 @@ function App() {
           <Route path="/" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route
-  path="/dashboard"
-  element={
-    <ProtectedRoute>
-      <Dashboard />
-    </ProtectedRoute>
-  }
-/>
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/history"
+            element={
+              <ProtectedRoute>
+                <History />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </div>
     </BrowserRouter>

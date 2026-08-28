@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { supabase } from '../lib/supabase';
 
 export default function AIFoodLogger({ onLogSuccess }) {
   const [input, setInput] = useState('');
@@ -29,13 +30,25 @@ export default function AIFoodLogger({ onLogSuccess }) {
 
       if (!res.ok) throw new Error(aiResponse.error || 'Failed to estimate calories');
 
-      onLogSuccess({
-        food_name: aiResponse.items?.join(', ') || input.trim(),
-        calories: Number(aiResponse.calories) || 0,
-        protein: Number(aiResponse.protein) || 0,
-        carbs: Number(aiResponse.carbs) || 0,
-        fat: Number(aiResponse.fat) || 0,
-      });
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('You must be signed in to log food');
+
+      const { data: savedFood, error: saveError } = await supabase
+        .from('food_logs')
+        .insert([{
+          user_id: user.id,
+          food_name: aiResponse.items?.join(', ') || input.trim(),
+          calories: Number(aiResponse.calories) || 0,
+          protein: Number(aiResponse.protein) || 0,
+          carbs: Number(aiResponse.carbs) || 0,
+          fat: Number(aiResponse.fat) || 0,
+        }])
+        .select()
+        .single();
+
+      if (saveError) throw saveError;
+
+      onLogSuccess(savedFood);
       setInput('');
     } catch (err) {
       console.error('Error logging food:', err.message);
