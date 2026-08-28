@@ -100,7 +100,7 @@ function History() {
   return (
     <div className="min-h-screen text-white">
       <Navbar />
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-10">
+      <main className="mx-auto w-full max-w-5xl px-3 py-6 sm:px-6 sm:py-10">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -108,12 +108,12 @@ function History() {
           className="mb-8"
         >
           <p className="mb-2 text-sm font-medium uppercase tracking-[0.2em] text-strong-cyan">Your rhythm</p>
-          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-            <div>
+          <div className="flex min-w-0 flex-col justify-between gap-4 sm:flex-row sm:items-end">
+            <div className="min-w-0">
               <h1 className="text-3xl font-bold text-white/95 sm:text-4xl">Weekly History</h1>
-              <p className="mt-2 text-white/55">{weekLabel}</p>
+              <p className="mt-2 break-words text-white/55">{weekLabel}</p>
             </div>
-            <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left sm:text-right">
+            <div className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left sm:w-auto sm:min-w-32 sm:text-right">
               <p className="text-2xl font-bold text-strong-cyan">{achievedDays}/{completedDays.length}</p>
               <p className="text-xs uppercase tracking-wider text-white/50">days achieved</p>
             </div>
@@ -133,19 +133,19 @@ function History() {
                   initial={{ opacity: 0, y: 14 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.35, delay: index * 0.04 }}
-                  className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-lg shadow-black/10"
+                  className="min-w-0 rounded-2xl border border-white/10 bg-white/5 p-4 shadow-lg shadow-black/10 sm:p-5"
                 >
-                  <div className="mb-5 flex items-start justify-between gap-3">
-                    <div>
+                  <div className="mb-5 flex min-w-0 items-start justify-between gap-2 sm:gap-3">
+                    <div className="min-w-0">
                       <h2 className="font-semibold text-white/90">{formatDay(day.date)}</h2>
                       <p className="mt-1 text-xs text-white/45">{day.mealCount} {day.mealCount === 1 ? 'meal' : 'meals'} logged</p>
                     </div>
-                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${day.isFuture ? 'bg-white/10 text-white/50' : day.achieved ? 'bg-emerald-400/15 text-emerald-300' : 'bg-honey-bronze/15 text-honey-bronze'}`}>
+                    <span className={`shrink-0 rounded-full px-2 py-1 text-center text-[11px] font-semibold sm:px-3 sm:text-xs ${day.isFuture ? 'bg-white/10 text-white/50' : day.achieved ? 'bg-emerald-400/15 text-emerald-300' : 'bg-honey-bronze/15 text-honey-bronze'}`}>
                       {day.isFuture ? 'Upcoming' : day.achieved ? 'Achieved' : 'Not achieved'}
                     </span>
                   </div>
 
-                  <div className="mb-4 flex items-end justify-between">
+                  <div className="mb-4 flex min-w-0 items-end justify-between gap-3">
                     <div>
                       <p className="text-3xl font-bold text-strong-cyan">{day.totals.calories}</p>
                       <p className="text-xs text-white/45">of {goals.daily_calorie_goal} kcal</p>
@@ -156,7 +156,7 @@ function History() {
                     <div className="h-full rounded-full bg-strong-cyan transition-all" style={{ width: `${caloriePercent}%` }} />
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2 border-t border-white/10 pt-4 text-center text-xs">
+                  <div className="grid grid-cols-3 gap-1 border-t border-white/10 pt-4 text-center text-xs sm:gap-2">
                     <div><p className="text-white/40">Protein</p><p className="mt-1 font-semibold text-white/80">{Math.round(day.totals.protein)}g</p></div>
                     <div><p className="text-white/40">Carbs</p><p className="mt-1 font-semibold text-white/80">{Math.round(day.totals.carbs)}g</p></div>
                     <div><p className="text-white/40">Fat</p><p className="mt-1 font-semibold text-white/80">{Math.round(day.totals.fat)}g</p></div>
