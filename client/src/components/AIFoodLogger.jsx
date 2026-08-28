@@ -56,7 +56,7 @@ export default function AIFoodLogger({ onLogSuccess }) {
           <h3 className="text-lg font-medium text-white/90">AI Food Logger</h3>
           <p className="text-xs text-white/45 mt-1">Describe a meal to estimate its nutrition.</p>
         </div>
-        <span className="text-xs font-semibold uppercase tracking-wider text-strong-cyan">AI</span>
+       
       </div>
 
       {error && (
