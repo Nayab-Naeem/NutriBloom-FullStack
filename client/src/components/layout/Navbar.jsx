@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { logout } from '../../lib/auth';
 
-const modes = ['forest', 'ocean', 'cosmic'];
+const modes = ['light', 'dark'];
 
 export default function Navbar() {
   const location = useLocation();
@@ -46,7 +46,7 @@ export default function Navbar() {
               onClick={() => changeMode(mode)}
               className="min-w-0 flex-1 rounded-md px-1.5 py-1.5 capitalize transition hover:bg-white/10 sm:px-3"
             >
-              {mode}
+              {mode === 'light' ? 'Light' : 'Dark'}
             </button>
           ))}
         </div>

@@ -28,7 +28,7 @@ function Dashboard() {
   const percentage = Math.round(progress * 100);
 
   const [mode, setMode] = useState(
-    document.documentElement.getAttribute('data-mode') || 'forest'
+    document.documentElement.getAttribute('data-mode') || 'light'
   );
 
   // Fetch today's food logs and target goal

@@ -10,30 +10,68 @@
 
 /* Mode colors */
 :root,
-[data-mode="forest"] {
-  --bg-primary: #2f4858;
-  --bg-secondary: #3a5a6c;
-  --accent: #55dde0;
+[data-mode="light"] {
+  --bg-primary: #b8d9e8;
+  --bg-secondary: #a8cde3;
+  --accent: #f26419;
+  --text-primary: #0a0e27;
+  --text-secondary: #1a4d5c;
+  --border-color: rgba(26, 77, 92, 0.25);
+  --bg-overlay: rgba(26, 77, 92, 0.12);
+  --text-muted: rgba(26, 77, 92, 0.65);
 }
 
-[data-mode="ocean"] {
-  --bg-primary: #1e3a5f;
-  --bg-secondary: #2a4a6f;
-  --accent: #55dde0;
-}
-
-[data-mode="cosmic"] {
+[data-mode="dark"] {
   --bg-primary: #1a1a2e;
   --bg-secondary: #16213e;
   --accent: #f26419;
+  --text-primary: white;
+  --text-secondary: #55dde0;
+  --border-color: rgba(255, 255, 255, 0.1);
+  --bg-overlay: rgba(0, 0, 0, 0.3);
+  --text-muted: rgba(255, 255, 255, 0.7);
 }
 
 /* Apply background */
 html, body, #root {
   background-color: var(--bg-primary);
-  color: white;
+  color: var(--text-primary);
   min-height: 100vh;
-  transition: background-color 0.5s ease;
+  transition: background-color 0.5s ease, color 0.5s ease;
+}
+
+/* Adaptive text colors */
+[data-mode="light"] .text-white,
+[data-mode="light"] .text-white\/70,
+[data-mode="light"] .text-white\/50 {
+  color: var(--text-primary) !important;
+}
+
+[data-mode="light"] .text-white\/70 {
+  color: var(--text-muted) !important;
+}
+
+[data-mode="light"] .text-strong-cyan {
+  color: var(--text-secondary) !important;
+}
+
+/* Adaptive background overlays */
+[data-mode="light"] .bg-white\/10,
+[data-mode="light"] .bg-black\/30 {
+  background-color: var(--bg-overlay) !important;
+}
+
+[data-mode="light"] .border-white\/10 {
+  border-color: var(--border-color) !important;
+}
+
+/* Links and navigation */
+[data-mode="light"] a {
+  color: var(--text-secondary);
+}
+
+[data-mode="light"] nav {
+  background-color: var(--bg-overlay) !important;
 }
 
 .growth-animation {
@@ -75,100 +113,6 @@ html, body, #root {
   text-transform: uppercase;
 }
 
-.forest-tree {
-  position: relative;
-  width: calc(9rem + var(--growth) * 3rem);
-  height: calc(12rem + var(--growth) * 3rem);
-  transform: translateY(5%);
-  transition: width 900ms ease, height 900ms ease;
-}
-
-.forest-trunk {
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  width: 1.4rem;
-  height: 48%;
-  border-radius: 999px 999px 0 0;
-  background: linear-gradient(90deg, #6d3618, #b66a32, #6d3618);
-  transform: translateX(-50%);
-}
-
-.forest-crown {
-  position: absolute;
-  left: 50%;
-  border-radius: 50% 50% 45% 45%;
-  background: radial-gradient(circle at 35% 25%, #86efac, #22c55e 55%, #166534);
-  box-shadow: 0 0 2rem rgb(34 197 94 / 25%);
-  transform: translateX(-50%);
-}
-
-.forest-crown-bottom { top: 35%; width: 78%; height: 45%; }
-.forest-crown-middle { top: 18%; width: 61%; height: 40%; }
-.forest-crown-top { top: 3%; width: 43%; height: 32%; }
-
-.ocean-fish {
-  position: relative;
-  width: calc(9rem + var(--growth) * 5rem);
-  height: calc(5rem + var(--growth) * 3rem);
-  animation: fish-swim 3.5s ease-in-out infinite;
-  transition: width 900ms ease, height 900ms ease;
-}
-
-.fish-body {
-  position: absolute;
-  top: 10%;
-  right: 7%;
-  width: 73%;
-  height: 80%;
-  border-radius: 50% 48% 48% 50%;
-  background: linear-gradient(145deg, #67e8f9, #0891b2 65%, #155e75);
-  box-shadow: 0 0 2rem rgb(34 211 238 / 35%);
-}
-
-.fish-tail {
-  position: absolute;
-  top: 20%;
-  left: 0;
-  width: 35%;
-  height: 60%;
-  background: #0e7490;
-  clip-path: polygon(100% 50%, 0 0, 12% 50%, 0 100%);
-}
-
-.fish-fin {
-  position: absolute;
-  width: 30%;
-  height: 35%;
-  background: #06b6d4;
-  clip-path: polygon(0 100%, 100% 0, 78% 100%);
-}
-
-.fish-fin-top { top: -18%; left: 42%; }
-.fish-fin-bottom { bottom: -18%; left: 43%; transform: rotate(180deg); }
-
-.fish-eye {
-  position: absolute;
-  top: 27%;
-  left: 16%;
-  width: 0.7rem;
-  height: 0.7rem;
-  border: 0.2rem solid white;
-  border-radius: 50%;
-  background: #082f49;
-  box-shadow: 0 0 0 0.1rem rgb(8 47 73 / 70%);
-}
-
-.ocean-bubble {
-  position: absolute;
-  border: 1px solid rgb(186 230 253 / 60%);
-  border-radius: 50%;
-  animation: bubble-rise 3s ease-in infinite;
-}
-
-.bubble-one { top: 27%; left: 23%; width: 0.7rem; height: 0.7rem; }
-.bubble-two { top: 42%; left: 16%; width: 0.4rem; height: 0.4rem; animation-delay: 1.2s; }
-
 .cosmic-planet {
   position: relative;
   width: calc(7rem + var(--growth) * 4rem);
@@ -194,6 +138,4 @@ html, body, #root {
 .crater-one { top: 25%; left: 60%; width: 1rem; height: 0.6rem; }
 .crater-two { top: 62%; left: 27%; width: 1.4rem; height: 0.8rem; }
 
-@keyframes fish-swim { 0%, 100% { transform: translateX(-3%) rotate(-2deg); } 50% { transform: translateX(3%) rotate(2deg); } }
-@keyframes bubble-rise { 0% { opacity: 0; transform: translateY(2rem); } 35%, 75% { opacity: 0.8; } 100% { opacity: 0; transform: translateY(-5rem); } }
 @keyframes orbit-spin { from { transform: rotate(-25deg) rotateZ(0deg); } to { transform: rotate(-25deg) rotateZ(360deg); } }
