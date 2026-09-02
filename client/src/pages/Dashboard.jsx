@@ -6,14 +6,20 @@ import AIFoodLogger from '../components/AIFoodLogger';
 import DashboardFoodCard from '../components/DashboardFoodcard';
 import AIMealSuggester from '../components/AIMealSuggester';
 import Navbar from '../components/layout/Navbar';
+import OnboardingModal from '../components/OnBoardingModal';
+import WeightGainComponent from '../components/WeightGainComponent';
+import WeightLossComponent from '../components/WeightLossComponent';
+import WeightMaintainComponent from '../components/WeightMaintainComponent';
 
 function Dashboard() {
   const [foodItems, setFoodItems] = useState([]);
   const [calorieGoal, setCalorieGoal] = useState(2000);
-  const [isEditingGoal, setIsEditingGoal] = useState(false);
-  const [newGoalInput, setNewGoalInput] = useState(2000);
-  const [savingGoal, setSavingGoal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [userGoal, setUserGoal] = useState('maintain'); // 'gain', 'lose', or 'maintain'
+  const [user, setUser] = useState(null);
+  const [userWeight, setUserWeight] = useState(0);
+  const [macros, setMacros] = useState({ protein: 150, carbs: 250, fat: 75 });
 
   // Today's Date String for Supabase query
   const todayDate = new Date().toISOString().split('T')[0];
@@ -31,7 +37,29 @@ function Dashboard() {
     document.documentElement.getAttribute('data-mode') || 'light'
   );
 
-  // Fetch today's food logs and target goal
+  // Fetch AI-generated nutrition targets from backend
+  const fetchNutritionTargets = async (age, gender, height_cm, weight_kg, goal) => {
+    try {
+      const response = await fetch('/api/nutrition-targets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ age, gender, height_cm, weight_kg, goal })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch nutrition targets');
+      }
+
+      const result = await response.json();
+      return result.data; // Returns { calorieGoal, protein, carbs, fat }
+    } catch (err) {
+      console.error('Error fetching nutrition targets:', err);
+      // Fallback to safe defaults if AI fails
+      return { calorieGoal: 2200, protein: 150, carbs: 250, fat: 75 };
+    }
+  };
+
+  // Fetch today's food logs, user profile, and target goal
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
@@ -39,7 +67,40 @@ function Dashboard() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        // 1. Fetch today's food logs
+        setUser(user);
+
+        // 1. Fetch user profile
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        // Check if profile is complete
+        if (!profile || !profile.is_profile_complete) {
+          setShowOnboarding(true);
+        } else {
+          setUserGoal(profile.goal || 'maintain');
+          setUserWeight(profile.weight_kg || 0);
+          
+          // Fetch AI-generated nutrition targets based on user profile
+          const targets = await fetchNutritionTargets(
+            profile.age,
+            profile.gender,
+            profile.height_cm,
+            profile.weight_kg,
+            profile.goal
+          );
+          
+          setCalorieGoal(targets.calorieGoal);
+          setMacros({ 
+            protein: targets.protein, 
+            carbs: targets.carbs, 
+            fat: targets.fat 
+          });
+        }
+
+        // 2. Fetch today's food logs
         const { data: logs } = await supabase
           .from('food_logs')
           .select('*')
@@ -47,18 +108,6 @@ function Dashboard() {
           .order('created_at', { ascending: false });
 
         if (logs) setFoodItems(logs);
-
-        // 2. Fetch user's custom daily calorie goal
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('daily_calorie_goal')
-          .eq('id', user.id)
-          .single();
-
-        if (profile?.daily_calorie_goal) {
-          setCalorieGoal(profile.daily_calorie_goal);
-          setNewGoalInput(profile.daily_calorie_goal);
-        }
       } catch (err) {
         console.error('Error loading dashboard data:', err);
       } finally {
@@ -84,30 +133,41 @@ function Dashboard() {
     return () => observer.disconnect();
   }, []);
 
-  // 🎯 Save updated calorie target to Supabase
-  const handleSaveGoal = async (e) => {
-    e.preventDefault();
-    setSavingGoal(true);
+  // 🎯 Handle onboarding completion
+  const handleOnboardingComplete = async (goal) => {
+    setUserGoal(goal);
+    setShowOnboarding(false);
 
+    // Fetch the updated profile with all data to get AI targets
     try {
       const { data: { user } } = await supabase.auth.getUser();
-
-      const { error } = await supabase
+      const { data: profile } = await supabase
         .from('profiles')
-        .upsert({
-          id: user.id,
-          daily_calorie_goal: Number(newGoalInput),
-          updated_at: new Date().toISOString(),
-        });
+        .select('*')
+        .eq('id', user.id)
+        .single();
 
-      if (!error) {
-        setCalorieGoal(Number(newGoalInput));
-        setIsEditingGoal(false);
+      if (profile && profile.weight_kg) {
+        setUserWeight(profile.weight_kg);
+        
+        // Fetch AI-generated nutrition targets based on complete profile
+        const targets = await fetchNutritionTargets(
+          profile.age,
+          profile.gender,
+          profile.height_cm,
+          profile.weight_kg,
+          goal
+        );
+        
+        setCalorieGoal(targets.calorieGoal);
+        setMacros({ 
+          protein: targets.protein, 
+          carbs: targets.carbs, 
+          fat: targets.fat 
+        });
       }
     } catch (err) {
-      console.error('Failed to save goal:', err);
-    } finally {
-      setSavingGoal(false);
+      console.error('Error fetching updated profile:', err);
     }
   };
 
@@ -125,14 +185,26 @@ function Dashboard() {
     } catch (err) {
       console.error('Delete error:', err);
     }
-  };
+  };;
 
   return (
     <div className="min-h-screen text-white">
+      {/* Show Onboarding Modal if profile is not complete */}
+      {showOnboarding && user && (
+        <OnboardingModal user={user} onComplete={handleOnboardingComplete} />
+      )}
+
       <Navbar />
 
       {/* Main Content */}
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+
+        {/* Goal-based component section */}
+        <section className="mb-12">
+          {userGoal === 'gain' && <WeightGainComponent calorieGoal={calorieGoal} macros={macros} />}
+          {userGoal === 'lose' && <WeightLossComponent calorieGoal={calorieGoal} macros={macros} />}
+          {userGoal === 'maintain' && <WeightMaintainComponent calorieGoal={calorieGoal} macros={macros} />}
+        </section>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
           
@@ -148,38 +220,8 @@ function Dashboard() {
           <div className="space-y-8">
             <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
               
-              {/* Header with Edit Goal Trigger */}
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium text-white/80">Today's Calories</h3>
-                <button
-                  onClick={() => setIsEditingGoal(!isEditingGoal)}
-                  className="text-xs text-strong-cyan hover:underline font-medium"
-                >
-                  {isEditingGoal ? 'Cancel' : '⚙️ Set Target Goal'}
-                </button>
-              </div>
-
-              {/* 🎯 EDIT GOAL INPUT FORM */}
-              {isEditingGoal && (
-                <form onSubmit={handleSaveGoal} className="mb-4 p-3 bg-black/40 border border-strong-cyan/30 rounded-xl flex flex-col sm:flex-row sm:items-center gap-2">
-                  <span className="text-xs text-white/70">Target:</span>
-                  <input
-                    type="number"
-                    value={newGoalInput}
-                    onChange={(e) => setNewGoalInput(e.target.value)}
-                    className="w-full min-w-0 flex-1 bg-white/10 px-3 py-1.5 rounded-lg text-sm text-white focus:outline-none focus:ring-1 focus:ring-strong-cyan"
-                    placeholder="e.g. 2200"
-                    required
-                  />
-                  <button
-                    type="submit"
-                    disabled={savingGoal}
-                    className="w-full sm:w-auto bg-strong-cyan text-black font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-opacity-80 transition"
-                  >
-                    {savingGoal ? 'Saving...' : 'Save'}
-                  </button>
-                </form>
-              )}
+              {/* Header */}
+              <h3 className="text-lg font-medium text-white/80 mb-4">Today's Calories</h3>
 
               <div className="flex justify-between items-end mb-3">
                 <div>
@@ -211,7 +253,7 @@ function Dashboard() {
         {/* AI Next Food Recommendation */}
         <AIMealSuggester 
           foodLogs={foodItems} 
-          dailyGoals={{ calories: calorieGoal, protein: 150, carbs: 200, fat: 65 }}
+          dailyGoals={{ calories: calorieGoal, protein: macros.protein, carbs: macros.carbs, fat: macros.fat }}
           onMealLogged={handleLogSuccess}
         />
 
