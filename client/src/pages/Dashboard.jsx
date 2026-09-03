@@ -37,28 +37,6 @@ function Dashboard() {
     document.documentElement.getAttribute('data-mode') || 'light'
   );
 
-  // Fetch AI-generated nutrition targets from backend
-  const fetchNutritionTargets = async (age, gender, height_cm, weight_kg, goal) => {
-    try {
-      const response = await fetch('/api/nutrition-targets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ age, gender, height_cm, weight_kg, goal })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch nutrition targets');
-      }
-
-      const result = await response.json();
-      return result.data; // Returns { calorieGoal, protein, carbs, fat }
-    } catch (err) {
-      console.error('Error fetching nutrition targets:', err);
-      // Fallback to safe defaults if AI fails
-      return { calorieGoal: 2200, protein: 150, carbs: 250, fat: 75 };
-    }
-  };
-
   // Fetch today's food logs, user profile, and target goal
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -82,21 +60,15 @@ function Dashboard() {
         } else {
           setUserGoal(profile.goal || 'maintain');
           setUserWeight(profile.weight_kg || 0);
-          
-          // Fetch AI-generated nutrition targets based on user profile
-          const targets = await fetchNutritionTargets(
-            profile.age,
-            profile.gender,
-            profile.height_cm,
-            profile.weight_kg,
-            profile.goal
+
+          setCalorieGoal(
+            Number(profile.calorie_goal) || 2000
           );
-          
-          setCalorieGoal(targets.calorieGoal);
-          setMacros({ 
-            protein: targets.protein, 
-            carbs: targets.carbs, 
-            fat: targets.fat 
+
+          setMacros({
+            protein: Number(profile.protein_goal) || 150,
+            carbs: Number(profile.carbs_goal) || 250,
+            fat: Number(profile.fat_goal) || 75
           });
         }
 
@@ -133,7 +105,7 @@ function Dashboard() {
     return () => observer.disconnect();
   }, []);
 
-  // 🎯 Handle onboarding completion
+  //  Handle onboarding completion
   const handleOnboardingComplete = async (goal) => {
     setUserGoal(goal);
     setShowOnboarding(false);
@@ -149,21 +121,16 @@ function Dashboard() {
 
       if (profile && profile.weight_kg) {
         setUserWeight(profile.weight_kg);
-        
+
         // Fetch AI-generated nutrition targets based on complete profile
-        const targets = await fetchNutritionTargets(
-          profile.age,
-          profile.gender,
-          profile.height_cm,
-          profile.weight_kg,
-          goal
+        setCalorieGoal(
+          Number(profile.calorie_goal) || 2000
         );
-        
-        setCalorieGoal(targets.calorieGoal);
-        setMacros({ 
-          protein: targets.protein, 
-          carbs: targets.carbs, 
-          fat: targets.fat 
+
+        setMacros({
+          protein: Number(profile.protein_goal) || 150,
+          carbs: Number(profile.carbs_goal) || 250,
+          fat: Number(profile.fat_goal) || 75
         });
       }
     } catch (err) {

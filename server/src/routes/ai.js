@@ -110,72 +110,143 @@ Respond with ONLY a valid JSON object in this exact format:
   }
 });
 
-// Generate personalized nutrition targets based on user profile
+
+// Generate personalized nutrition targets based on calculated TDEE
 router.post('/nutrition-targets', async (req, res) => {
   try {
-    const { age, gender, height_cm, weight_kg, goal } = req.body;
+    const {
+      age,
+      gender,
+      height_cm,
+      weight_kg,
+      goal,
+      bmr,
+      tdee
+    } = req.body;
 
-    if (!age || !gender || !height_cm || !weight_kg || !goal) {
-      return res.status(400).json({ 
-        error: 'Missing required fields: age, gender, height_cm, weight_kg, goal' 
+    if (
+      !age ||
+      !gender ||
+      !height_cm ||
+      !weight_kg ||
+      !goal ||
+      !bmr ||
+      !tdee
+    ) {
+      return res.status(400).json({
+        error:
+          'Missing required fields: age, gender, height_cm, weight_kg, goal, bmr, tdee'
       });
     }
 
     if (!genAI) {
       return res.status(503).json({
-        error: 'AI service is not configured. Add a valid GEMINI_API_KEY to server/.env.',
+        error:
+          'AI service is not configured. Add a valid GEMINI_API_KEY to server/.env.'
       });
     }
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-3.6-flash'
+    });
 
-    const prompt = `You are a certified nutritionist and fitness expert. Calculate personalized daily nutrition targets for this person:
+    const prompt = `
+You are a certified nutritionist.
 
-User Profile:
+Create realistic daily nutrition targets for this person.
+
+User profile:
 - Age: ${age} years
 - Gender: ${gender}
 - Height: ${height_cm} cm
 - Weight: ${weight_kg} kg
-- Goal: ${goal} (options: gain weight, lose weight, maintain weight)
+- Goal: ${goal}
+- BMR: ${bmr} kcal/day
+- TDEE: ${tdee} kcal/day
 
-Based on this profile, calculate:
-1. Estimated BMR (Basal Metabolic Rate)
-2. Daily calorie goal based on their goal type
-3. Macronutrient breakdown (Protein, Carbs, Fat in grams)
+Goal rules:
 
-For the goal:
-- "gain": Create a calorie surplus of +300-400 calories above TDEE
-- "lose": Create a calorie deficit of -400-500 calories below TDEE
-- "maintain": Set to estimated TDEE
+If goal is "gain":
+- Create a moderate calorie surplus of approximately 300-400 kcal above TDEE.
 
-Respond with ONLY a valid JSON object in this exact format:
-{"calorieGoal": number, "protein": number, "carbs": number, "fat": number}
+If goal is "lose":
+- Create a moderate calorie deficit of approximately 400-500 kcal below TDEE.
 
-Important: All values must be realistic, science-based numbers suitable for the person's profile.`;
+If goal is "maintain":
+- Keep calories approximately equal to TDEE.
+
+Calculate realistic daily:
+1. Calories
+2. Protein in grams
+3. Carbohydrates in grams
+4. Fat in grams
+
+Protein should be appropriate for the person's body weight.
+Do not create extreme calorie or macro targets.
+
+Respond with ONLY valid JSON in exactly this format:
+
+{
+  "calorieGoal": number,
+  "protein": number,
+  "carbs": number,
+  "fat": number
+}
+`;
 
     const result = await model.generateContent(prompt);
+
     const response = await result.response;
+
     let text = response.text().trim();
 
-    // Clean possible markdown
-    text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    // Remove markdown code fences if Gemini adds them
+    text = text
+      .replace(/```json/g, '')
+      .replace(/```/g, '')
+      .trim();
 
     const data = JSON.parse(text);
 
-    // Validate the response
-    if (!data.calorieGoal || !data.protein || !data.carbs || !data.fat) {
+    // Validate AI response
+    if (
+      !data.calorieGoal ||
+      !data.protein ||
+      !data.carbs ||
+      !data.fat
+    ) {
       throw new Error('Invalid nutrition targets from AI');
     }
 
-    res.json({ success: true, data });
+    res.json({
+      success: true,
+      data
+    });
+
   } catch (error) {
     console.error('Nutrition targets error:', error);
-    const isAuthError = error.message?.includes('401') ||
+
+    const isAuthError =
+      error.message?.includes('401') ||
       error.message?.includes('ACCESS_TOKEN_TYPE_UNSUPPORTED');
-    res.status(isAuthError ? 503 : 500).json({
+
+    const isQuotaError =
+      error.message?.includes('429') ||
+      error.message?.includes('quota') ||
+      error.message?.includes('Too Many Requests');
+
+    const status = isQuotaError
+      ? 429
+      : isAuthError
+        ? 503
+        : 500;
+
+    res.status(status).json({
       error: isAuthError
         ? 'AI authentication failed. Replace GEMINI_API_KEY with a valid Google AI Studio API key.'
-        : 'Failed to generate nutrition targets',
+        : isQuotaError
+          ? 'AI request limit reached. Wait for the Google AI Studio quota to reset or enable billing.'
+          : 'Failed to generate nutrition targets'
     });
   }
 });
