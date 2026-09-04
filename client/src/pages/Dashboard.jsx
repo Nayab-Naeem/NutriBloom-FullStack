@@ -217,12 +217,17 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* AI Next Food Recommendation */}
-        <AIMealSuggester 
-          foodLogs={foodItems} 
-          dailyGoals={{ calories: calorieGoal, protein: macros.protein, carbs: macros.carbs, fat: macros.fat }}
-          onMealLogged={handleLogSuccess}
-        />
+<AIMealSuggester
+  foodLogs={foodItems}
+  dailyGoals={{
+    calories: calorieGoal,
+    protein: macros.protein,
+    carbs: macros.carbs,
+    fat: macros.fat
+  }}
+  goal={userGoal}
+  onMealLogged={handleLogSuccess}
+/>
 
         {/* Food Log Grid */}
         <section className="mt-12">

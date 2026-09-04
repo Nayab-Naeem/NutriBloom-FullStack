@@ -54,144 +54,162 @@ Respond with ONLY a valid JSON object in this exact format:
 
 router.post('/ai/suggest-meal', async (req, res) => {
   try {
-    const {
-      remainingCalories,
-      remainingProtein,
-      remainingCarbs,
-      remainingFat,
-      mealType = 'dinner',
-    } = req.body;
+ const {
+  remainingCalories,
+  remainingProtein,
+  remainingCarbs,
+  remainingFat,
+  mealType = 'snack',
+  goal = 'maintain',
+} = req.body;
 
     if (!genAI) {
       return res.status(503).json({
-        error: 'AI service is not configured. Add a valid GEMINI_API_KEY to server/.env.',
+        error:
+          'AI service is not configured. Add a valid GEMINI_API_KEY to server/.env.',
       });
     }
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
-    const prompt = `You are a nutrition expert. Suggest three different healthy Pakistani ${mealType} options that fit these remaining daily targets:
+    const goalInstructions = {
+      gain: `
+The user is in WEIGHT GAIN mode.
+
+Recommend calorie-dense but nutritious foods that help support healthy weight gain.
+Prefer foods such as:
+- Milk
+- Banana shake
+- Dates
+- Peanut butter
+- Eggs
+- Yogurt
+- Nuts
+- Oats
+- Chicken
+- Rice
+- Paratha in moderation
+
+Small snacks and drinks are completely acceptable.
+Do NOT assume the user wants a huge full meal.
+`,
+
+lose: `
+The user is in WEIGHT LOSS mode.
+
+The priority is LOW-CALORIE, LIGHT and FILLING food choices.
+These suggestions are for the user's NEXT BITE or SMALL SNACK, NOT a full meal.
+
+Prefer options such as:
+- Kahwa
+- Green tea
+- Black coffee
+- Unsweetened tea
+- Cucumber
+- Tomato
+- Apple
+- Orange
+- Guava
+- Watermelon
+- Low-fat Greek yogurt
+- Plain low-fat yogurt
+- 1 boiled egg
+- Small bowl of clear vegetable soup
+- Small portion of roasted chana
+- Small salad
+- Lemon water without sugar
+
+IMPORTANT WEIGHT-LOSS RULES:
+- Prefer suggestions around 0-150 kcal per serving.
+- Do NOT try to use up all remaining calories.
+- Do NOT suggest 200-300+ kcal snacks unless there is a very strong nutritional reason.
+- Avoid fried foods, paratha, large rice portions, desserts, sugary drinks, shakes and calorie-dense mixtures.
+- Avoid large portions of nuts, almonds, peanut butter and dates.
+- Keep portions small and realistic.
+- Drinks such as kahwa, green tea and black coffee can be suggested when appropriate.
+- The goal is to give the user a genuinely light next-food option while maintaining good nutrition.
+`,
+
+      maintain: `
+The user is in WEIGHT MAINTENANCE mode.
+
+Recommend balanced and nutritious foods.
+Suggestions can include:
+- Eggs
+- Fruit
+- Yogurt
+- Milk
+- Oats
+- Sandwiches
+- Chicken
+- Rice
+- Daal
+- Roti
+- Nuts
+- Tea or coffee in moderation
+
+Suggestions can be snacks, drinks, breakfast items or meals depending on the context.
+`,
+    };
+
+    const selectedGoal =
+      goalInstructions[goal] || goalInstructions.maintain;
+
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-3.6-flash',
+    });
+
+    const prompt = `
+You are a nutrition assistant inside a Pakistani meal-tracking application called NutriBloom.
+
+USER GOAL:
+${goal}
+
+${selectedGoal}
+
+The user wants ideas for their NEXT BITE, not necessarily a complete meal.
+
+Remaining daily nutrition:
+
 Calories: ${Number(remainingCalories) || 0} kcal
 Protein: ${Number(remainingProtein) || 0} g
 Carbs: ${Number(remainingCarbs) || 0} g
 Fat: ${Number(remainingFat) || 0} g
 
-Respond with ONLY a valid JSON object in this exact format:
-  {"suggestions":[{"foodName":"meal name","description":"short description","calories":number,"protein":number,"carbs":number,"fat":number}]}`;
+Meal context:
+${mealType}
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    let text = response.text().trim();
-    text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+IMPORTANT:
 
-    const parsed = JSON.parse(text);
-    const suggestions = Array.isArray(parsed) ? parsed : parsed.suggestions;
+1. Suggest THREE different realistic food or drink options.
+2. Suggestions MUST match the user's goal.
+3. Suggestions should generally be small or moderate portions rather than trying to consume all remaining daily calories at once.
+4. For weight loss, small options such as kahwa, green tea, black coffee, fruit, boiled egg, yogurt, cucumber, soup, etc. are appropriate.
+5. For weight gain, calorie-dense nutritious options such as banana shake, dates with milk, peanut butter toast, eggs, nuts, yogurt, etc. are appropriate.
+6. For maintenance, provide balanced options.
+7. Prefer foods commonly available in Pakistan.
+8. Do not recommend unsafe crash diets, starvation, extreme calorie restriction or excessive eating.
+9. Nutrition numbers should be reasonable estimates for the suggested serving.
+10. Each suggestion must be something the user could realistically eat or drink as their next snack/meal.
+11. Do not make every suggestion a full dinner.
+12. Keep descriptions short.
 
-    if (!Array.isArray(suggestions) || suggestions.length === 0) {
-      throw new Error('AI returned no meal suggestions');
-    }
+Return ONLY valid JSON.
 
-    res.json({ success: true, data: suggestions });
-  } catch (error) {
-    console.error('Meal suggestion error:', error);
-    const isAuthError = error.message?.includes('401') ||
-      error.message?.includes('ACCESS_TOKEN_TYPE_UNSUPPORTED');
-    const isQuotaError = error.message?.includes('429') ||
-      error.message?.includes('quota') ||
-      error.message?.includes('Too Many Requests');
-    const status = isQuotaError ? 429 : 500;
-
-    res.status(status).json({
-      error: isAuthError
-        ? 'AI authentication failed. Replace GEMINI_API_KEY with a valid Google AI Studio API key.'
-        : isQuotaError
-          ? 'AI request limit reached. Wait for the Google AI Studio quota to reset or enable billing.'
-          : 'Failed to generate a meal suggestion',
-    });
-  }
-});
-
-
-// Generate personalized nutrition targets based on calculated TDEE
-router.post('/nutrition-targets', async (req, res) => {
-  try {
-    const {
-      age,
-      gender,
-      height_cm,
-      weight_kg,
-      goal,
-      bmr,
-      tdee
-    } = req.body;
-
-    if (
-      !age ||
-      !gender ||
-      !height_cm ||
-      !weight_kg ||
-      !goal ||
-      !bmr ||
-      !tdee
-    ) {
-      return res.status(400).json({
-        error:
-          'Missing required fields: age, gender, height_cm, weight_kg, goal, bmr, tdee'
-      });
-    }
-
-    if (!genAI) {
-      return res.status(503).json({
-        error:
-          'AI service is not configured. Add a valid GEMINI_API_KEY to server/.env.'
-      });
-    }
-
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-3.6-flash'
-    });
-
-    const prompt = `
-You are a certified nutritionist.
-
-Create realistic daily nutrition targets for this person.
-
-User profile:
-- Age: ${age} years
-- Gender: ${gender}
-- Height: ${height_cm} cm
-- Weight: ${weight_kg} kg
-- Goal: ${goal}
-- BMR: ${bmr} kcal/day
-- TDEE: ${tdee} kcal/day
-
-Goal rules:
-
-If goal is "gain":
-- Create a moderate calorie surplus of approximately 300-400 kcal above TDEE.
-
-If goal is "lose":
-- Create a moderate calorie deficit of approximately 400-500 kcal below TDEE.
-
-If goal is "maintain":
-- Keep calories approximately equal to TDEE.
-
-Calculate realistic daily:
-1. Calories
-2. Protein in grams
-3. Carbohydrates in grams
-4. Fat in grams
-
-Protein should be appropriate for the person's body weight.
-Do not create extreme calorie or macro targets.
-
-Respond with ONLY valid JSON in exactly this format:
+Use exactly this structure:
 
 {
-  "calorieGoal": number,
-  "protein": number,
-  "carbs": number,
-  "fat": number
+  "suggestions": [
+    {
+      "foodName": "Black Coffee",
+      "description": "A light, low-calorie drink suitable as a small option.",
+      "calories": 5,
+      "protein": 0,
+      "carbs": 1,
+      "fat": 0
+    }
+  ]
 }
+
+Return exactly 3 suggestions.
 `;
 
     const result = await model.generateContent(prompt);
@@ -206,25 +224,23 @@ Respond with ONLY valid JSON in exactly this format:
       .replace(/```/g, '')
       .trim();
 
-    const data = JSON.parse(text);
+    const parsed = JSON.parse(text);
 
-    // Validate AI response
-    if (
-      !data.calorieGoal ||
-      !data.protein ||
-      !data.carbs ||
-      !data.fat
-    ) {
-      throw new Error('Invalid nutrition targets from AI');
+    const suggestions = Array.isArray(parsed)
+      ? parsed
+      : parsed.suggestions;
+
+    if (!Array.isArray(suggestions) || suggestions.length === 0) {
+      throw new Error('AI returned no meal suggestions');
     }
 
     res.json({
       success: true,
-      data
+      data: suggestions.slice(0, 3),
     });
 
   } catch (error) {
-    console.error('Nutrition targets error:', error);
+    console.error('Meal suggestion error:', error);
 
     const isAuthError =
       error.message?.includes('401') ||
@@ -246,9 +262,10 @@ Respond with ONLY valid JSON in exactly this format:
         ? 'AI authentication failed. Replace GEMINI_API_KEY with a valid Google AI Studio API key.'
         : isQuotaError
           ? 'AI request limit reached. Wait for the Google AI Studio quota to reset or enable billing.'
-          : 'Failed to generate nutrition targets'
+          : 'Failed to generate a meal suggestion',
     });
   }
 });
+
 
 export default router;
