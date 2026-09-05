@@ -33,6 +33,36 @@ function Dashboard() {
   const progress = Math.min(caloriesEaten / calorieGoal, 1);
   const percentage = Math.round(progress * 100);
 
+  const proteinEaten = foodItems.reduce(
+  (sum, item) => sum + (Number(item.protein) || 0),
+  0
+);
+
+const carbsEaten = foodItems.reduce(
+  (sum, item) => sum + (Number(item.carbs) || 0),
+  0
+);
+
+const fatEaten = foodItems.reduce(
+  (sum, item) => sum + (Number(item.fat) || 0),
+  0
+);
+
+const proteinPercentage = Math.min(
+  100,
+  Math.round((proteinEaten / macros.protein) * 100)
+);
+
+const carbsPercentage = Math.min(
+  100,
+  Math.round((carbsEaten / macros.carbs) * 100)
+);
+
+const fatPercentage = Math.min(
+  100,
+  Math.round((fatEaten / macros.fat) * 100)
+);
+
   const [mode, setMode] = useState(
     document.documentElement.getAttribute('data-mode') || 'light'
   );
@@ -202,14 +232,78 @@ function Dashboard() {
               </div>
 
               {/* Progress Bar */}
-              <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden">
-                <motion.div
-                  className="h-full bg-strong-cyan rounded-full"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${percentage}%` }}
-                  transition={{ duration: 0.8, ease: 'easeOut' }}
-                />
-              </div>
+             {/* Main Calorie Progress */}
+<div className="w-full h-3 bg-white/10 rounded-full overflow-hidden">
+  <motion.div
+    className="h-full bg-strong-cyan rounded-full"
+    initial={{ width: 0 }}
+    animate={{ width: `${percentage}%` }}
+    transition={{ duration: 0.8, ease: 'easeOut' }}
+  />
+</div>
+
+{/* Macro Progress */}
+<div className="grid grid-cols-3 gap-3 mt-4">
+
+  {/* Protein */}
+  <div>
+    <div className="flex justify-between text-[10px] text-white/50 mb-1">
+      <span>Protein</span>
+      <span>
+        {Math.round(proteinEaten)}g / {Math.round(macros.protein)}g
+      </span>
+    </div>
+
+    <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+      <motion.div
+        className="h-full bg-emerald-400 rounded-full"
+        initial={{ width: 0 }}
+        animate={{ width: `${proteinPercentage}%` }}
+        transition={{ duration: 0.6, ease: 'easeOut' }}
+      />
+    </div>
+  </div>
+
+  {/* Carbs */}
+  <div>
+    <div className="flex justify-between text-[10px] text-white/50 mb-1">
+      <span>Carbs</span>
+      <span>
+        {Math.round(carbsEaten)}g / {Math.round(macros.carbs)}g
+      </span>
+    </div>
+
+    <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+      <motion.div
+        className="h-full bg-amber-400 rounded-full"
+        initial={{ width: 0 }}
+        animate={{ width: `${carbsPercentage}%` }}
+        transition={{ duration: 0.6, ease: 'easeOut' }}
+      />
+    </div>
+  </div>
+
+  {/* Fat */}
+  <div>
+    <div className="flex justify-between text-[10px] text-white/50 mb-1">
+      <span>Fat</span>
+      <span>
+        {Math.round(fatEaten)}g / {Math.round(macros.fat)}g
+      </span>
+    </div>
+
+    <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+      <motion.div
+        className="h-full bg-rose-400 rounded-full"
+        initial={{ width: 0 }}
+        animate={{ width: `${fatPercentage}%` }}
+        transition={{ duration: 0.6, ease: 'easeOut' }}
+      />
+    </div>
+  </div>
+
+</div>
+
             </div>
 
             {/* AI Food Logger */}
