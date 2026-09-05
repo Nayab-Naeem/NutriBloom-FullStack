@@ -153,16 +153,20 @@ export default function AIMealSuggester({
           ? [result.data]
           : [];
 
+      const safeSuggestions = goal === 'lose'
+        ? returnedSuggestions.filter((item) => Number(item.calories) <= 150)
+        : returnedSuggestions;
+
       if (
         !result.success ||
-        returnedSuggestions.length === 0
+        safeSuggestions.length === 0
       ) {
         throw new Error(
           'The AI returned no food suggestions.'
         );
       }
 
-      setSuggestions(returnedSuggestions);
+      setSuggestions(safeSuggestions);
 
     } catch (err) {
       console.error(

@@ -95,37 +95,35 @@ Do NOT assume the user wants a huge full meal.
 lose: `
 The user is in WEIGHT LOSS mode.
 
-The priority is LOW-CALORIE, LIGHT and FILLING food choices.
-These suggestions are for the user's NEXT BITE or SMALL SNACK, NOT a full meal.
+Recommend LIGHT, LOW-CALORIE, FILLING foods and drinks.
 
-Prefer options such as:
+Prioritize options such as:
 - Kahwa
 - Green tea
 - Black coffee
-- Unsweetened tea
+- Tea without excessive sugar
 - Cucumber
-- Tomato
+- Fruit
 - Apple
 - Orange
 - Guava
-- Watermelon
-- Low-fat Greek yogurt
-- Plain low-fat yogurt
-- 1 boiled egg
-- Small bowl of clear vegetable soup
-- Small portion of roasted chana
-- Small salad
-- Lemon water without sugar
+- Boiled egg
+- Greek yogurt
+- Low-fat yogurt
+- Roasted chana
+- Light soup
+- Small portion of chana chaat
+- Grilled chicken in a small portion
+- Salad
 
-IMPORTANT WEIGHT-LOSS RULES:
-- Prefer suggestions around 0-150 kcal per serving.
-- Do NOT try to use up all remaining calories.
-- Do NOT suggest 200-300+ kcal snacks unless there is a very strong nutritional reason.
-- Avoid fried foods, paratha, large rice portions, desserts, sugary drinks, shakes and calorie-dense mixtures.
-- Avoid large portions of nuts, almonds, peanut butter and dates.
-- Keep portions small and realistic.
-- Drinks such as kahwa, green tea and black coffee can be suggested when appropriate.
-- The goal is to give the user a genuinely light next-food option while maintaining good nutrition.
+IMPORTANT:
+- Prefer approximately 50–250 kcal per suggestion.
+- Suggestions should normally be snacks or small portions.
+- Do NOT suggest large meals.
+- Avoid large portions of rice, roti, paratha, fried foods, desserts, sugary drinks, shakes or calorie-dense mixtures.
+- High-protein options are preferred when appropriate.
+- The goal is to help the user stay within a moderate calorie deficit, NOT to consume all remaining calories.
+- Do not suggest extreme dieting or starvation.
 `,
 
       maintain: `
@@ -182,7 +180,7 @@ IMPORTANT:
 1. Suggest THREE different realistic food or drink options.
 2. Suggestions MUST match the user's goal.
 3. Suggestions should generally be small or moderate portions rather than trying to consume all remaining daily calories at once.
-4. For weight loss, small options such as kahwa, green tea, black coffee, fruit, boiled egg, yogurt, cucumber, soup, etc. are appropriate.
+4. For weight loss, every suggestion MUST be a small low-calorie option between 5 and 150 kcal. Prefer kahwa, green tea, black coffee, unsweetened tea, cucumber, a small fruit, one boiled egg, low-fat yogurt, or a light soup. Never suggest a full meal.
 5. For weight gain, calorie-dense nutritious options such as banana shake, dates with milk, peanut butter toast, eggs, nuts, yogurt, etc. are appropriate.
 6. For maintenance, provide balanced options.
 7. Prefer foods commonly available in Pakistan.
@@ -191,6 +189,7 @@ IMPORTANT:
 10. Each suggestion must be something the user could realistically eat or drink as their next snack/meal.
 11. Do not make every suggestion a full dinner.
 12. Keep descriptions short.
+13. For weight loss, do not suggest rice, biryani, paratha, fried foods, burgers, pizza, sandwiches, shakes, desserts, nuts, peanut butter, or large portions.
 
 Return ONLY valid JSON.
 
@@ -234,9 +233,37 @@ Return exactly 3 suggestions.
       throw new Error('AI returned no meal suggestions');
     }
 
+    const normalizedSuggestions = suggestions
+      .map((suggestion) => ({
+        ...suggestion,
+        calories: Number(suggestion.calories),
+        protein: Number(suggestion.protein),
+        carbs: Number(suggestion.carbs),
+        fat: Number(suggestion.fat),
+      }))
+      .filter((suggestion) => (
+        suggestion.foodName &&
+        Number.isFinite(suggestion.calories) &&
+        Number.isFinite(suggestion.protein) &&
+        Number.isFinite(suggestion.carbs) &&
+        Number.isFinite(suggestion.fat) &&
+        suggestion.calories >= 0 &&
+        suggestion.protein >= 0 &&
+        suggestion.carbs >= 0 &&
+        suggestion.fat >= 0
+      ));
+
+    const safeSuggestions = goal === 'lose'
+      ? normalizedSuggestions.filter((suggestion) => suggestion.calories <= 150)
+      : normalizedSuggestions;
+
+    if (safeSuggestions.length < 3) {
+      throw new Error('AI returned suggestions that do not match the requested goal');
+    }
+
     res.json({
       success: true,
-      data: suggestions.slice(0, 3),
+      data: safeSuggestions.slice(0, 3),
     });
 
   } catch (error) {
