@@ -197,11 +197,17 @@ const fatPercentage = Math.min(
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
 
         {/* Goal-based component section */}
-        <section className="mb-12">
-          {userGoal === 'gain' && <WeightGainComponent calorieGoal={calorieGoal} macros={macros} />}
-          {userGoal === 'lose' && <WeightLossComponent calorieGoal={calorieGoal} macros={macros} />}
-          {userGoal === 'maintain' && <WeightMaintainComponent calorieGoal={calorieGoal} macros={macros} />}
-        </section>
+    <section className="mb-12">
+  {loading ? (
+    <div className="text-center text-white/50 py-10">
+      Loading your dashboard...
+    </div>
+  ) : (
+    <>
+      {userGoal === 'gain' && ( <WeightGainComponent calorieGoal={calorieGoal} macros={macros} /> )}
+      {userGoal === 'lose' && ( <WeightLossComponent calorieGoal={calorieGoal} macros={macros}   />  )}
+      {userGoal === 'maintain' && ( <WeightMaintainComponent calorieGoal={calorieGoal}  macros={macros} />)} </> )}
+</section>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
           
