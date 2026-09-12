@@ -5,10 +5,11 @@ import Signup from './pages/Signup';
 import ProtectedRoute from './components/ProtectedRoute';
 import Dashboard from './pages/Dashboard';
 import History from './pages/History';
+import Settings from './pages/Settings';
 
 function App() {
   const [mode, setMode] = useState(() => {
-    return localStorage.getItem('nutribloom-mode') || 'forest';
+    return localStorage.getItem('nutribloom-mode') || 'light';
   });
 
   useEffect(() => {
@@ -52,6 +53,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <History />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <Settings />
               </ProtectedRoute>
             }
           />

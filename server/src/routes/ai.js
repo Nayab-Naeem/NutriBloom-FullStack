@@ -8,6 +8,57 @@ const router = express.Router();
 const apiKey = process.env.GEMINI_API_KEY?.trim();
 const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
+router.post('/nutrition-targets', async (req, res) => {
+  try {
+    const { age, gender, height_cm, weight_kg, goal, bmr, tdee } = req.body;
+
+    if (!age || !gender || !height_cm || !weight_kg || !goal || !bmr || !tdee) {
+      return res.status(400).json({ error: 'Complete profile details are required.' });
+    }
+
+    if (!genAI) {
+      return res.status(503).json({
+        error: 'AI service is not configured. Add a valid GEMINI_API_KEY to server/.env.',
+      });
+    }
+
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
+    const prompt = `You are a registered nutrition expert. Calculate daily nutrition targets for this user:
+Age: ${age}
+Gender: ${gender}
+Height: ${height_cm} cm
+Weight: ${weight_kg} kg
+Goal: ${goal}
+BMR: ${bmr}
+TDEE: ${tdee}
+
+Return ONLY a valid JSON object in this exact format with whole numbers:
+{"calorieGoal": number, "protein": number, "carbs": number, "fat": number}`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    let text = response.text().trim();
+    text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+
+    const data = JSON.parse(text);
+
+    if (!data.calorieGoal || !data.protein || !data.carbs || !data.fat) {
+      return res.status(502).json({ error: 'AI returned incomplete nutrition targets.' });
+    }
+
+    return res.json({ data });
+  } catch (error) {
+    console.error('Error generating nutrition targets:', error);
+    const isAuthError = error.message?.includes('401') ||
+      error.message?.includes('ACCESS_TOKEN_TYPE_UNSUPPORTED');
+    return res.status(500).json({
+      error: isAuthError
+        ? 'AI authentication failed. Replace GEMINI_API_KEY with a valid Google AI Studio API key.'
+        : 'Failed to generate nutrition targets. Please try again.',
+    });
+  }
+});
+
 router.post('/estimate-calories', async (req, res) => {
   try {
     const { description } = req.body;
