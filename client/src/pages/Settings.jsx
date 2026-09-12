@@ -20,6 +20,7 @@ function Settings() {
 
   const changeMode = (nextMode) => {
     document.documentElement.setAttribute('data-mode', nextMode);
+    localStorage.setItem('nutribloom-mode', nextMode);
     setMode(nextMode);
   };
 
@@ -57,22 +58,26 @@ function Settings() {
   };
 
   return (
-    <div className="min-h-screen text-white">
+    <div className="min-h-screen">
       <Navbar />
-      <main className="mx-auto w-full max-w-3xl px-3 py-6 sm:px-6 sm:py-10">
+      <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
         <div className="mb-8">
-          <p className="mb-2 text-sm font-medium uppercase tracking-[0.2em] text-strong-cyan">Personalize your space</p>
-          <h1 className="text-3xl font-bold text-white/95 sm:text-4xl">Settings</h1>
-          <p className="mt-2 text-white/55">Manage the way NutriBloom looks and your profile journey.</p>
+          <p className="mb-2 text-xs font-medium uppercase tracking-[0.2em] text-strong-cyan">Personalize your space</p>
+          <h1 className="text-3xl font-bold nb-section-title sm:text-4xl">Settings</h1>
+          <p className="mt-2 nb-muted text-sm">Manage the way NutriBloom looks and your profile journey.</p>
         </div>
 
-        {error && <div className="mb-6 rounded-xl border border-red-500/40 bg-red-500/15 p-4 text-sm text-red-200">{error}</div>}
+        {error && (
+          <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">
+            {error}
+          </div>
+        )}
 
         <section className="space-y-4">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-lg shadow-black/10 sm:p-6">
+          <div className="nb-card p-5 sm:p-6">
             <div className="mb-5">
-              <h2 className="text-lg font-semibold text-white/90">Appearance</h2>
-              <p className="mt-1 text-sm text-white/50">Choose your preferred color mode.</p>
+              <h2 className="text-base font-semibold nb-section-title">Appearance</h2>
+              <p className="mt-1 text-sm nb-muted">Choose your preferred color mode.</p>
             </div>
             <div className="grid grid-cols-2 gap-3" role="group" aria-label="Color mode">
               {modes.map(({ id, label, icon: Icon }) => (
@@ -81,7 +86,11 @@ function Settings() {
                   type="button"
                   aria-pressed={mode === id}
                   onClick={() => changeMode(id)}
-                  className={`flex min-h-12 items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium transition ${mode === id ? 'border-strong-cyan bg-strong-cyan/15 text-strong-cyan' : 'border-white/10 bg-white/5 text-white/70 hover:bg-white/10'}`}
+                  className={`flex min-h-12 items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium transition ${
+                    mode === id
+                      ? 'border-strong-cyan bg-strong-cyan/15 text-strong-cyan'
+                      : 'border-[var(--border-color)] bg-[var(--bg-overlay)] text-[var(--text-muted)] hover:bg-[var(--bg-card)]'
+                  }`}
                 >
                   <Icon size={17} aria-hidden="true" />
                   {label}
@@ -90,31 +99,31 @@ function Settings() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-lg shadow-black/10 sm:p-6">
+          <div className="nb-card p-5 sm:p-6">
             <div className="mb-5">
-              <h2 className="text-lg font-semibold text-white/90">Profile</h2>
-              <p className="mt-1 text-sm text-white/50">Start onboarding again to update your goals and nutrition targets.</p>
+              <h2 className="text-base font-semibold nb-section-title">Profile</h2>
+              <p className="mt-1 text-sm nb-muted">Start onboarding again to update your goals and nutrition targets.</p>
             </div>
             <button
               type="button"
               onClick={handleResetProfile}
               disabled={resetting}
-              className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-honey-bronze/50 bg-honey-bronze/10 px-4 py-3 text-sm font-medium text-honey-bronze transition hover:bg-honey-bronze/20 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+              className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-honey-bronze/40 bg-honey-bronze/10 px-4 py-3 text-sm font-medium text-honey-bronze transition hover:bg-honey-bronze/20 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
             >
               <RotateCcw size={17} aria-hidden="true" />
               {resetting ? 'Resetting profile...' : 'Reset Profile'}
             </button>
           </div>
 
-          <div className="rounded-2xl border border-red-500/25 bg-red-500/5 p-5 shadow-lg shadow-black/10 sm:p-6">
+          <div className="nb-card p-5 sm:p-6 border-red-500/20">
             <div className="mb-5">
-              <h2 className="text-lg font-semibold text-white/90">Account</h2>
-              <p className="mt-1 text-sm text-white/50">Sign out of your NutriBloom account.</p>
+              <h2 className="text-base font-semibold nb-section-title">Account</h2>
+              <p className="mt-1 text-sm nb-muted">Sign out of your NutriBloom account.</p>
             </div>
             <button
               type="button"
               onClick={handleLogout}
-              className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-red-500/40 bg-red-500/15 px-4 py-3 text-sm font-medium text-red-300 transition hover:bg-red-500/25 sm:w-auto"
+              className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-400 transition hover:bg-red-500/15 sm:w-auto"
             >
               <LogOut size={17} aria-hidden="true" />
               Logout
