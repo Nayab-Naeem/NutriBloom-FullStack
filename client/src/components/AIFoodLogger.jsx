@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { apiUrl } from '../lib/api';
 import { getLocalDateKey } from '../utils/date';
 
 export default function AIFoodLogger({ onLogSuccess }) {
@@ -15,7 +16,7 @@ export default function AIFoodLogger({ onLogSuccess }) {
     setError('');
 
     try {
-      const res = await fetch('/api/estimate-calories', {
+      const res = await fetch(apiUrl('/api/estimate-calories'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ description: input }),
@@ -56,7 +57,7 @@ export default function AIFoodLogger({ onLogSuccess }) {
       console.error('Error logging food:', err.message);
       setError(
         err instanceof TypeError && err.message === 'Failed to fetch'
-          ? 'Cannot reach the AI server. Start the server with "npm start" from the server folder.'
+          ? 'Cannot reach the AI server. Check that the backend is running and VITE_API_URL is set in production.'
           : err.message || 'Failed to estimate calories'
       );
     } finally {
