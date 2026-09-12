@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 
 import {
@@ -7,7 +7,7 @@ import {
   getBMICategory,
   determineGoal,
   calculateBMR,
-  calculateTDEE
+  calculateTDEE,
 } from '../utils/nutritionCalculations';
 
 const OnboardingModal = ({ user, onComplete }) => {
@@ -16,34 +16,24 @@ const OnboardingModal = ({ user, onComplete }) => {
     gender: 'female',
     heightCm: '',
     weightKg: '',
-    activityLevel: 'moderate'
+    activityLevel: 'moderate',
   });
 
-  // Step 1 = Form
-  // Step 2 = Result
   const [step, setStep] = useState(1);
-
   const [calculatedResult, setCalculatedResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value
-    }));
-
+    setFormData((prev) => ({ ...prev, [name]: value }));
     setError('');
   };
 
   const handleCalculateAndSave = async (e) => {
     e.preventDefault();
-
     setError('');
 
-    // Basic validation
     if (
       !formData.age ||
       !formData.heightCm ||
@@ -59,17 +49,14 @@ const OnboardingModal = ({ user, onComplete }) => {
     const heightCm = Number(formData.heightCm);
     const weightKg = Number(formData.weightKg);
 
-    // More useful validation
     if (age < 13 || age > 100) {
       setError('Please enter a valid age between 13 and 100.');
       return;
     }
-
     if (heightCm < 100 || heightCm > 250) {
       setError('Please enter a valid height between 100 and 250 cm.');
       return;
     }
-
     if (weightKg < 25 || weightKg > 300) {
       setError('Please enter a valid weight between 25 and 300 kg.');
       return;
@@ -78,53 +65,22 @@ const OnboardingModal = ({ user, onComplete }) => {
     setLoading(true);
 
     try {
-      // --------------------------------------------------
-      // 1. Calculate BMI
-      // --------------------------------------------------
       const bmi = calculateBMI(weightKg, heightCm);
+      if (!bmi) throw new Error('Unable to calculate BMI.');
 
-      if (!bmi) {
-        throw new Error('Unable to calculate BMI.');
-      }
-
-      // --------------------------------------------------
-      // 2. BMI Category
-      // --------------------------------------------------
       const bmiCategory = getBMICategory(bmi);
-
-      // --------------------------------------------------
-      // 3. Determine Goal
-      // gain / lose / maintain
-      // --------------------------------------------------
       const goal = determineGoal(bmi);
-
-      // --------------------------------------------------
-      // 4. Calculate BMR
-      // Mifflin-St Jeor
-      // --------------------------------------------------
       const bmr = calculateBMR({
         age,
         gender: formData.gender,
         heightCm,
-        weightKg
+        weightKg,
       });
+      const tdee = calculateTDEE(bmr, formData.activityLevel);
 
-      // --------------------------------------------------
-      // 5. Calculate TDEE
-      // --------------------------------------------------
-      const tdee = calculateTDEE(
-        bmr,
-        formData.activityLevel
-      );
-
-      // --------------------------------------------------
-      // 6. Ask Gemini for nutrition targets
-      // --------------------------------------------------
       const response = await fetch('/api/nutrition-targets', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           age,
           gender: formData.gender,
@@ -132,569 +88,389 @@ const OnboardingModal = ({ user, onComplete }) => {
           weight_kg: weightKg,
           goal,
           bmr,
-          tdee
-        })
+          tdee,
+        }),
       });
 
       let result;
-
       try {
         result = await response.json();
       } catch {
-        throw new Error(
-          'Could not read the AI server response.'
-        );
+        throw new Error('Could not read the AI server response.');
       }
 
       if (!response.ok) {
-        throw new Error(
-          result?.error ||
-          'Failed to generate nutrition targets.'
-        );
+        throw new Error(result?.error || 'Failed to generate nutrition targets.');
       }
-
       if (!result?.data) {
-        throw new Error(
-          'AI did not return nutrition targets.'
-        );
+        throw new Error('AI did not return nutrition targets.');
       }
 
       const targets = result.data;
-
-      // --------------------------------------------------
-      // 7. Validate Gemini response
-      // --------------------------------------------------
-      if (
-        !targets.calorieGoal ||
-        !targets.protein ||
-        !targets.carbs ||
-        !targets.fat
-      ) {
-        throw new Error(
-          'AI returned incomplete nutrition targets.'
-        );
+      if (!targets.calorieGoal || !targets.protein || !targets.carbs || !targets.fat) {
+        throw new Error('AI returned incomplete nutrition targets.');
       }
 
-      // --------------------------------------------------
-      // 8. Save everything to Supabase
-      // --------------------------------------------------
-      const { error: saveError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: user.id,
-
-          age,
-          gender: formData.gender,
-
-          height_cm: heightCm,
-          weight_kg: weightKg,
-
-          bmi,
-          goal,
-
-          activity_level: formData.activityLevel,
-
-          bmr,
-          tdee,
-
-          calorie_goal: Number(targets.calorieGoal),
-          protein_goal: Number(targets.protein),
-          carbs_goal: Number(targets.carbs),
-          fat_goal: Number(targets.fat),
-
-          is_profile_complete: true,
-
-          updated_at: new Date().toISOString()
-        });
+      const { error: saveError } = await supabase.from('profiles').upsert({
+        id: user.id,
+        age,
+        gender: formData.gender,
+        height_cm: heightCm,
+        weight_kg: weightKg,
+        bmi,
+        goal,
+        activity_level: formData.activityLevel,
+        bmr,
+        tdee,
+        calorie_goal: Number(targets.calorieGoal),
+        protein_goal: Number(targets.protein),
+        carbs_goal: Number(targets.carbs),
+        fat_goal: Number(targets.fat),
+        is_profile_complete: true,
+        updated_at: new Date().toISOString(),
+      });
 
       if (saveError) {
-        throw new Error(
-          `Error saving profile: ${saveError.message}`
-        );
+        throw new Error(`Error saving profile: ${saveError.message}`);
       }
 
-      // --------------------------------------------------
-      // 9. Store everything for Result Modal
-      // --------------------------------------------------
       setCalculatedResult({
         bmi,
         bmiCategory,
         goal,
-
         bmr,
         tdee,
-
         calorieGoal: Number(targets.calorieGoal),
         protein: Number(targets.protein),
         carbs: Number(targets.carbs),
-        fat: Number(targets.fat)
+        fat: Number(targets.fat),
       });
-
-      // --------------------------------------------------
-      // 10. Show Result Modal
-      // --------------------------------------------------
       setStep(2);
-
     } catch (err) {
       console.error('Onboarding error:', err);
-
-      setError(
-        err.message ||
-        'Something went wrong. Please try again.'
-      );
+      setError(err.message || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  // --------------------------------------------------
-  // Goal information
-  // --------------------------------------------------
   const goalMessages = {
     gain: {
-      text: '💪 Weight Gain',
+      text: 'Weight Gain',
+      emoji: '💪',
       color: '#f26419',
-      desc: 'Focus on a healthy calorie surplus and muscle building.'
+      desc: 'Healthy calorie surplus focused on muscle building.',
     },
-
     lose: {
-      text: '🔥 Weight Loss',
+      text: 'Weight Loss',
+      emoji: '🔥',
       color: '#ef4444',
-      desc: 'Focus on a moderate calorie deficit and healthy nutrition.'
+      desc: 'Moderate deficit with nutrition that protects lean mass.',
     },
-
     maintain: {
-      text: '⚖️ Weight Maintain',
+      text: 'Weight Maintain',
+      emoji: '⚖️',
       color: '#0891b2',
-      desc: 'Focus on balanced nutrition and maintaining a healthy lifestyle.'
-    }
+      desc: 'Balanced intake to support your current healthy weight.',
+    },
   };
 
-  const goalMessage =
-    goalMessages[calculatedResult?.goal] ||
-    goalMessages.maintain;
+  const goalMessage = goalMessages[calculatedResult?.goal] || goalMessages.maintain;
 
-  // --------------------------------------------------
-  // Edit Information
-  // --------------------------------------------------
   const handleEdit = () => {
     setStep(1);
     setError('');
-
-    // Keep the existing values in the form.
-    // User can modify them and recalculate.
   };
 
-  // --------------------------------------------------
-  // Close / complete onboarding
-  // --------------------------------------------------
   const handleStartJourney = () => {
     if (!calculatedResult) return;
-
     onComplete(calculatedResult.goal);
   };
 
+  const inputClass =
+    'w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-cyan-400 focus:bg-white focus:ring-2 focus:ring-cyan-400/30';
+  const labelClass = 'mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500';
+
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/55 p-4 backdrop-blur-sm">
       <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.25 }}
-        className="w-full max-w-md max-h-[90vh] overflow-y-auto bg-gradient-to-br from-white/95 to-white backdrop-blur-sm rounded-3xl shadow-2xl p-6 sm:p-8 border border-white/20"
+        initial={{ scale: 0.96, opacity: 0, y: 12 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        transition={{ duration: 0.28, ease: 'easeOut' }}
+        className="relative w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-3xl border border-slate-200/80 bg-white shadow-2xl shadow-slate-900/20"
       >
+        {/* Top accent bar */}
+        <div className="h-1.5 w-full bg-gradient-to-r from-cyan-400 via-strong-cyan to-blue-500" />
 
-        {/* ==================================================
-            STEP 1 — USER INFORMATION
-        ================================================== */}
-        {step === 1 && (
-          <motion.div
-            initial={{ y: -20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-          >
-
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">
-              Welcome to NutriBloom! 🌸
-            </h2>
-
-            <p className="text-gray-600 mb-8">
-              Tell us about yourself so we can personalize your nutrition plan.
-            </p>
-
-            <form
-              onSubmit={handleCalculateAndSave}
-              className="space-y-5"
-            >
-
-              {/* Error */}
-              {error && (
-                <div className="p-3 bg-red-100 border border-red-300 rounded-lg text-red-700 text-sm">
-                  {error}
-                </div>
-              )}
-
-              {/* AGE */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-800 mb-2">
-                  Age
-                </label>
-
-                <input
-                  type="number"
-                  name="age"
-                  required
-                  min="13"
-                  max="100"
-                  value={formData.age}
-                  onChange={handleChange}
-                  placeholder="e.g. 22"
-                  className="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-400"
-                />
-              </div>
-
-              {/* GENDER */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-800 mb-2">
-                  Gender
-                </label>
-
-                <select
-                  name="gender"
-                  value={formData.gender}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-cyan-400"
-                >
-                  <option value="female">
-                    Female
-                  </option>
-
-                  <option value="male">
-                    Male
-                  </option>
-
-                  <option value="other">
-                    Other
-                  </option>
-                </select>
-              </div>
-
-              {/* HEIGHT */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-800 mb-2">
-                  Height (cm)
-                </label>
-
-                <input
-                  type="number"
-                  name="heightCm"
-                  required
-                  min="100"
-                  max="250"
-                  value={formData.heightCm}
-                  onChange={handleChange}
-                  placeholder="e.g. 165"
-                  className="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-400"
-                />
-              </div>
-
-              {/* WEIGHT */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-800 mb-2">
-                  Weight (kg)
-                </label>
-
-                <input
-                  type="number"
-                  name="weightKg"
-                  required
-                  min="25"
-                  max="300"
-                  step="0.1"
-                  value={formData.weightKg}
-                  onChange={handleChange}
-                  placeholder="e.g. 60"
-                  className="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-400"
-                />
-              </div>
-
-              {/* ACTIVITY LEVEL */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-800 mb-2">
-                  Activity Level
-                </label>
-
-                <select
-                  name="activityLevel"
-                  value={formData.activityLevel}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-cyan-400"
-                >
-
-                  <option value="sedentary">
-                    Sedentary — little or no exercise
-                  </option>
-
-                  <option value="light">
-                    Light — exercise 1–3 days/week
-                  </option>
-
-                  <option value="moderate">
-                    Moderate — exercise 3–5 days/week
-                  </option>
-
-                  <option value="very">
-                    Very Active — exercise 6–7 days/week
-                  </option>
-
-                  <option value="extra">
-                    Extra Active — intense exercise/physical job
-                  </option>
-
-                </select>
-
-                <p className="text-xs text-gray-500 mt-2">
-                  This helps us estimate your daily energy needs.
-                </p>
-              </div>
-
-              {/* CALCULATE BUTTON */}
-              <motion.button
-                whileHover={{
-                  scale: loading ? 1 : 1.02
-                }}
-                whileTap={{
-                  scale: loading ? 1 : 0.98
-                }}
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 bg-gradient-to-r from-cyan-400 to-blue-500 text-white font-bold rounded-lg hover:shadow-lg transition disabled:opacity-70"
+        <div className="px-6 py-6 sm:px-8 sm:py-7">
+          {/* Step indicator */}
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span
+                className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${
+                  step === 1
+                    ? 'bg-cyan-500 text-white'
+                    : 'bg-cyan-100 text-cyan-700'
+                }`}
               >
-                {loading
-                  ? 'Creating Your Plan...'
-                  : 'Calculate My Plan'}
-              </motion.button>
-
-            </form>
-
-          </motion.div>
-        )}
-
-        {/* ==================================================
-            STEP 2 — RESULT
-        ================================================== */}
-        {step === 2 && calculatedResult && (
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-          >
-
-            <div className="text-center">
-
-              {/* HEADER */}
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                Your Health Summary 🌸
-              </h2>
-
-              {/* BMI */}
-              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-5 mb-4 border border-cyan-200">
-
-                <p className="text-gray-600 text-sm mb-2">
-                  Your BMI
-                </p>
-
-                <p className="text-5xl font-bold text-cyan-600">
-                  {calculatedResult.bmi}
-                </p>
-
-                <p className="text-gray-600 text-sm mt-2">
-                  {calculatedResult.bmiCategory}
-                </p>
-
-              </div>
-
-              {/* BMR + TDEE */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
-
-                <div className="bg-gray-100 rounded-xl p-4">
-
-                  <p className="text-gray-500 text-xs mb-1">
-                    BMR
-                  </p>
-
-                  <p className="text-xl font-bold text-gray-900">
-                    {calculatedResult.bmr}
-                  </p>
-
-                  <p className="text-gray-500 text-xs">
-                    kcal/day
-                  </p>
-
-                </div>
-
-                <div className="bg-gray-100 rounded-xl p-4">
-
-                  <p className="text-gray-500 text-xs mb-1">
-                    TDEE
-                  </p>
-
-                  <p className="text-xl font-bold text-gray-900">
-                    {calculatedResult.tdee}
-                  </p>
-
-                  <p className="text-gray-500 text-xs">
-                    kcal/day
-                  </p>
-
-                </div>
-
-              </div>
-
-              {/* GOAL */}
-              <div
-                className="rounded-2xl p-5 mb-4 text-white"
-                style={{
-                  background: `linear-gradient(
-                    135deg,
-                    ${goalMessage.color} 0%,
-                    ${goalMessage.color}dd 100%
-                  )`
-                }}
-              >
-
-                <p className="text-sm opacity-90 mb-2">
-                  Your personalized goal
-                </p>
-
-                <p className="text-3xl font-bold mb-2">
-                  {goalMessage.text}
-                </p>
-
-                <p className="text-sm opacity-90">
-                  {goalMessage.desc}
-                </p>
-
-              </div>
-
-              {/* DAILY TARGETS */}
-              <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-2xl p-5 mb-5 border border-cyan-200">
-
-                <p className="text-gray-700 font-semibold text-sm mb-4">
-                  Your Daily Nutrition Targets
-                </p>
-
-                <div className="grid grid-cols-2 gap-3">
-
-                  {/* CALORIES */}
-                  <div className="bg-white rounded-xl p-4">
-
-                    <p className="text-gray-500 text-xs">
-                      Calories
-                    </p>
-
-                    <p className="text-xl font-bold text-gray-900">
-                      {calculatedResult.calorieGoal}
-                    </p>
-
-                    <p className="text-gray-500 text-xs">
-                      kcal/day
-                    </p>
-
-                  </div>
-
-                  {/* PROTEIN */}
-                  <div className="bg-white rounded-xl p-4">
-
-                    <p className="text-gray-500 text-xs">
-                      Protein
-                    </p>
-
-                    <p className="text-xl font-bold text-gray-900">
-                      {calculatedResult.protein}g
-                    </p>
-
-                    <p className="text-gray-500 text-xs">
-                      per day
-                    </p>
-
-                  </div>
-
-                  {/* CARBS */}
-                  <div className="bg-white rounded-xl p-4">
-
-                    <p className="text-gray-500 text-xs">
-                      Carbs
-                    </p>
-
-                    <p className="text-xl font-bold text-gray-900">
-                      {calculatedResult.carbs}g
-                    </p>
-
-                    <p className="text-gray-500 text-xs">
-                      per day
-                    </p>
-
-                  </div>
-
-                  {/* FAT */}
-                  <div className="bg-white rounded-xl p-4">
-
-                    <p className="text-gray-500 text-xs">
-                      Fat
-                    </p>
-
-                    <p className="text-xl font-bold text-gray-900">
-                      {calculatedResult.fat}g
-                    </p>
-
-                    <p className="text-gray-500 text-xs">
-                      per day
-                    </p>
-
-                  </div>
-
-                </div>
-
-              </div>
-
-              <p className="text-gray-600 text-sm mb-6">
-                Your dashboard will now show personalized nutrition
-                recommendations, meal suggestions, and progress
-                tracking based on your health goal.
-              </p>
-
-              {/* BUTTONS */}
-              <div className="space-y-3">
-
-                {/* START JOURNEY */}
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleStartJourney}
-                  className="w-full py-3 bg-gradient-to-r from-cyan-400 to-blue-500 text-white font-bold rounded-lg hover:shadow-lg transition"
-                >
-                  Start My Journey 🌱
-                </motion.button>
-
-                {/* EDIT */}
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  type="button"
-                  onClick={handleEdit}
-                  className="w-full py-3 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition"
-                >
-                  ✏️ Edit Information
-                </motion.button>
-
-              </div>
-
+                1
+              </span>
+              <span className={`text-xs font-medium ${step === 1 ? 'text-slate-800' : 'text-slate-400'}`}>
+                Profile
+              </span>
             </div>
+            <div className="h-px flex-1 bg-slate-200" />
+            <div className="flex items-center gap-2">
+              <span
+                className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${
+                  step === 2
+                    ? 'bg-cyan-500 text-white'
+                    : 'bg-slate-100 text-slate-400'
+                }`}
+              >
+                2
+              </span>
+              <span className={`text-xs font-medium ${step === 2 ? 'text-slate-800' : 'text-slate-400'}`}>
+                Plan
+              </span>
+            </div>
+          </div>
 
-          </motion.div>
-        )}
+          <AnimatePresence mode="wait">
+            {step === 1 && (
+              <motion.div
+                key="step1"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <div className="mb-6">
+                  <p className="text-xs font-semibold uppercase tracking-[0.15em] text-cyan-600">
+                    Get started
+                  </p>
+                  <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                    Welcome to NutriBloom
+                  </h2>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-500">
+                    Share a few details so we can build your personalized nutrition targets.
+                  </p>
+                </div>
 
+                <form onSubmit={handleCalculateAndSave} className="space-y-4">
+                  {error && (
+                    <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                      {error}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className={labelClass}>Age</label>
+                      <input
+                        type="number"
+                        name="age"
+                        required
+                        min="13"
+                        max="100"
+                        value={formData.age}
+                        onChange={handleChange}
+                        placeholder="22"
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Gender</label>
+                      <select
+                        name="gender"
+                        value={formData.gender}
+                        onChange={handleChange}
+                        className={inputClass}
+                      >
+                        <option value="female">Female</option>
+                        <option value="male">Male</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className={labelClass}>Height (cm)</label>
+                      <input
+                        type="number"
+                        name="heightCm"
+                        required
+                        min="100"
+                        max="250"
+                        value={formData.heightCm}
+                        onChange={handleChange}
+                        placeholder="165"
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Weight (kg)</label>
+                      <input
+                        type="number"
+                        name="weightKg"
+                        required
+                        min="25"
+                        max="300"
+                        step="0.1"
+                        value={formData.weightKg}
+                        onChange={handleChange}
+                        placeholder="60"
+                        className={inputClass}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className={labelClass}>Activity level</label>
+                    <select
+                      name="activityLevel"
+                      value={formData.activityLevel}
+                      onChange={handleChange}
+                      className={inputClass}
+                    >
+                      <option value="sedentary">Sedentary — little or no exercise</option>
+                      <option value="light">Light — 1–3 days/week</option>
+                      <option value="moderate">Moderate — 3–5 days/week</option>
+                      <option value="very">Very active — 6–7 days/week</option>
+                      <option value="extra">Extra active — intense training / physical job</option>
+                    </select>
+                    <p className="mt-1.5 text-[11px] text-slate-400">
+                      Used to estimate your daily energy needs (TDEE).
+                    </p>
+                  </div>
+
+                  <motion.button
+                    whileHover={{ scale: loading ? 1 : 1.01 }}
+                    whileTap={{ scale: loading ? 1 : 0.99 }}
+                    type="submit"
+                    disabled={loading}
+                    className="mt-2 w-full rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 py-3.5 text-sm font-semibold text-white shadow-lg shadow-cyan-500/25 transition hover:shadow-cyan-500/35 disabled:opacity-70"
+                  >
+                    {loading ? (
+                      <span className="inline-flex items-center gap-2">
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                        Creating your plan...
+                      </span>
+                    ) : (
+                      'Calculate my plan'
+                    )}
+                  </motion.button>
+                </form>
+              </motion.div>
+            )}
+
+            {step === 2 && calculatedResult && (
+              <motion.div
+                key="step2"
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <div className="mb-5 text-center">
+                  <p className="text-xs font-semibold uppercase tracking-[0.15em] text-cyan-600">
+                    Your results
+                  </p>
+                  <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">
+                    Health summary
+                  </h2>
+                </div>
+
+                {/* BMI highlight */}
+                <div className="mb-4 rounded-2xl border border-cyan-100 bg-gradient-to-br from-cyan-50 to-blue-50 px-5 py-5 text-center">
+                  <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Your BMI</p>
+                  <p className="mt-1 text-4xl font-bold tracking-tight text-cyan-600 sm:text-5xl">
+                    {calculatedResult.bmi}
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-slate-600">{calculatedResult.bmiCategory}</p>
+                </div>
+
+                {/* BMR / TDEE */}
+                <div className="mb-4 grid grid-cols-2 gap-3">
+                  <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3.5 text-center">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">BMR</p>
+                    <p className="mt-1 text-xl font-bold text-slate-900">{calculatedResult.bmr}</p>
+                    <p className="text-[11px] text-slate-400">kcal/day</p>
+                  </div>
+                  <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3.5 text-center">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">TDEE</p>
+                    <p className="mt-1 text-xl font-bold text-slate-900">{calculatedResult.tdee}</p>
+                    <p className="text-[11px] text-slate-400">kcal/day</p>
+                  </div>
+                </div>
+
+                {/* Goal banner */}
+                <div
+                  className="mb-4 rounded-2xl px-5 py-4 text-white"
+                  style={{
+                    background: `linear-gradient(135deg, ${goalMessage.color} 0%, ${goalMessage.color}cc 100%)`,
+                  }}
+                >
+                  <p className="text-xs font-medium opacity-90">Recommended goal</p>
+                  <p className="mt-1 text-xl font-bold">
+                    {goalMessage.emoji} {goalMessage.text}
+                  </p>
+                  <p className="mt-1 text-sm opacity-90">{goalMessage.desc}</p>
+                </div>
+
+                {/* Daily targets */}
+                <div className="mb-5 rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    Daily nutrition targets
+                  </p>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {[
+                      { label: 'Calories', value: calculatedResult.calorieGoal, unit: 'kcal' },
+                      { label: 'Protein', value: `${calculatedResult.protein}g`, unit: 'per day' },
+                      { label: 'Carbs', value: `${calculatedResult.carbs}g`, unit: 'per day' },
+                      { label: 'Fat', value: `${calculatedResult.fat}g`, unit: 'per day' },
+                    ].map((item) => (
+                      <div
+                        key={item.label}
+                        className="rounded-xl border border-slate-100 bg-white px-3.5 py-3 text-center shadow-sm"
+                      >
+                        <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                          {item.label}
+                        </p>
+                        <p className="mt-0.5 text-lg font-bold text-slate-900">{item.value}</p>
+                        <p className="text-[10px] text-slate-400">{item.unit}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <p className="mb-5 text-center text-xs leading-relaxed text-slate-500">
+                  Your dashboard will use these targets for logging, suggestions, and progress tracking.
+                </p>
+
+                <div className="space-y-2.5">
+                  <motion.button
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.99 }}
+                    onClick={handleStartJourney}
+                    className="w-full rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 py-3.5 text-sm font-semibold text-white shadow-lg shadow-cyan-500/25"
+                  >
+                    Start my journey
+                  </motion.button>
+                  <button
+                    type="button"
+                    onClick={handleEdit}
+                    className="w-full rounded-xl border border-slate-200 bg-white py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+                  >
+                    Edit information
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </motion.div>
-
     </div>
   );
 };
