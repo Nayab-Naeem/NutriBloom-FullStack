@@ -60,7 +60,6 @@ export default function AIMealSuggester({
       description:
         'Light, nutritious options to help you stay satisfied while supporting your calorie deficit.',
       button: 'Suggest Light Foods',
-      color: 'emerald'
     },
 
     gain: {
@@ -69,7 +68,6 @@ export default function AIMealSuggester({
       description:
         'Nutrient-dense foods and snacks to help you reach your calorie and protein goals.',
       button: 'Suggest Foods to Gain',
-      color: 'orange'
     },
 
     maintain: {
@@ -78,7 +76,6 @@ export default function AIMealSuggester({
       description:
         'Balanced meals and snacks to help you maintain your current weight and nutrition.',
       button: 'Suggest Something',
-      color: 'cyan'
     }
   };
 
@@ -191,24 +188,24 @@ export default function AIMealSuggester({
   };
 
   return (
-    <div className="bg-slate-900 text-white p-4 sm:p-6 rounded-2xl shadow-md my-6">
+    <div className="nb-card p-5 sm:p-6 my-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="min-w-0">
-          <h3 className="text-lg font-bold flex items-start gap-2 break-words">
+          <h3 className="text-lg font-semibold flex items-start gap-2 break-words nb-section-title">
             <span>{currentGoal.emoji}</span>
             <span>{currentGoal.title}</span>
           </h3>
-          <p className="text-xs text-gray-300 mt-1">
+          <p className="text-xs nb-muted mt-1.5 leading-relaxed">
             {currentGoal.description}
           </p>
 
-          <p className="text-xs text-gray-400 mt-2">
+          <p className="text-xs nb-muted mt-2.5">
             Remaining today:{' '}
-            <span className="text-emerald-400 font-bold">
+            <span className="text-strong-cyan font-semibold">
               {remainingCalories} kcal
             </span>
             {' '}|{' '}
-            <span className="text-emerald-400 font-bold">
+            <span className="text-strong-cyan font-semibold">
               {remainingProtein}g protein
             </span>
           </p>
@@ -217,14 +214,14 @@ export default function AIMealSuggester({
         <button
           onClick={fetchNextFoodSuggestions}
           disabled={loading}
-          className="w-full sm:w-auto shrink-0 bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition disabled:opacity-50"
+          className="w-full sm:w-auto shrink-0 nb-btn-primary px-5 py-2.5 text-sm disabled:opacity-50"
         >
           {loading ? 'Thinking...' : currentGoal.button}
         </button>
       </div>
 
       {error && (
-        <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-300 text-sm">
+        <div className="mt-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
           {error}
         </div>
       )}
@@ -234,43 +231,40 @@ export default function AIMealSuggester({
           {suggestions.map((item, index) => (
             <div
               key={`${item.foodName}-${index}`}
-              className="bg-slate-800 border border-slate-700 p-4 rounded-xl flex flex-col justify-between min-w-0"
+              className="nb-card-elevated p-4 flex flex-col justify-between min-w-0"
             >
               <div>
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-2">
-                  <h4 className="font-bold text-sm text-gray-100 break-words">
+                  <h4 className="font-semibold text-sm nb-section-title break-words">
                     {item.foodName}
                   </h4>
-                  <span className="self-start shrink-0 text-xs font-extrabold text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded-md">
+                  <span className="self-start shrink-0 text-xs font-bold text-strong-cyan bg-[var(--bg-overlay)] px-2.5 py-1 rounded-lg">
                     {item.calories} kcal
                   </span>
                 </div>
 
                 {item.description && (
-                  <p className="text-xs text-gray-400 leading-relaxed mb-3">
+                  <p className="text-xs nb-muted leading-relaxed mb-3">
                     {item.description}
                   </p>
                 )}
 
-                <div className="flex flex-wrap gap-x-2 gap-y-1 text-[11px] text-gray-300">
+                <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] nb-muted">
                   <span>
-                    P:{' '}
-                    <b className="text-white">{item.protein}g</b>
+                    P: <b className="text-[var(--text-primary)]">{item.protein}g</b>
                   </span>
                   <span>
-                    C:{' '}
-                    <b className="text-white">{item.carbs}g</b>
+                    C: <b className="text-[var(--text-primary)]">{item.carbs}g</b>
                   </span>
                   <span>
-                    F:{' '}
-                    <b className="text-white">{item.fat}g</b>
+                    F: <b className="text-[var(--text-primary)]">{item.fat}g</b>
                   </span>
                 </div>
               </div>
               <button
                 onClick={() => handleLogItem(item, index)}
                 disabled={loggingId === index}
-                className="mt-3 w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-2 rounded-lg transition disabled:opacity-50"
+                className="mt-3 w-full nb-btn-accent text-xs py-2 disabled:opacity-50"
               >
                 {loggingId === index ? 'Logging...' : '+ Log This Food'}
               </button>
