@@ -108,7 +108,7 @@ const fatPercentage = Math.min(
         const { data: logs } = await supabase
   .from('food_logs')
   .select('*')
-  .eq('user_id', currentUser.id)
+  .eq('user_id', user.id)
   .eq('logged_date', todayDate)
   .order('created_at', { ascending: false });
   

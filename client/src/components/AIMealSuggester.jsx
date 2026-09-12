@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { getLocalDateKey } from '../utils/date';
 
 export default function AIMealSuggester({
   foodLogs = [],
@@ -11,10 +12,6 @@ export default function AIMealSuggester({
   const [suggestions, setSuggestions] = useState([]);
   const [loggingId, setLoggingId] = useState(null);
   const [error, setError] = useState('');
-
-  // --------------------------------------------------
-  // Calculate consumed nutrition
-  // --------------------------------------------------
 
   const consumedCalories = foodLogs.reduce(
     (sum, item) => sum + (Number(item.calories) || 0),
@@ -36,10 +33,6 @@ export default function AIMealSuggester({
     0
   );
 
-  // --------------------------------------------------
-  // Calculate remaining nutrition
-  // --------------------------------------------------
-
   const remainingCalories = Math.max(
     0,
     Number(dailyGoals.calories) - consumedCalories
@@ -59,10 +52,6 @@ export default function AIMealSuggester({
     0,
     Number(dailyGoals.fat) - consumedFat
   );
-
-  // --------------------------------------------------
-  // Goal-specific UI information
-  // --------------------------------------------------
 
   const goalInfo = {
     lose: {
@@ -93,13 +82,7 @@ export default function AIMealSuggester({
     }
   };
 
-  const currentGoal = goalInfo[goal];
-  if (!currentGoal) {
-  console.error('Invalid user goal:', goal);
-}
-  // --------------------------------------------------
-  // Fetch AI food suggestions
-  // --------------------------------------------------
+  const currentGoal = goalInfo[goal] || goalInfo.maintain;
 
   const fetchNextFoodSuggestions = async () => {
     setLoading(true);
@@ -108,21 +91,15 @@ export default function AIMealSuggester({
     try {
       const res = await fetch('/api/ai/suggest-meal', {
         method: 'POST',
-
         headers: {
           'Content-Type': 'application/json'
         },
-
         body: JSON.stringify({
           remainingCalories,
           remainingProtein,
           remainingCarbs,
           remainingFat,
-          // IMPORTANT:
-          // Send the user's actual goal to the backend.
           goal,
-          // We are asking for snack / food ideas,
-          // not necessarily a full meal.
           mealType: 'snack'
         })
       });
@@ -131,9 +108,7 @@ export default function AIMealSuggester({
       let result;
 
       try {
-        result = responseText
-          ? JSON.parse(responseText)
-          : {};
+        result = responseText ? JSON.parse(responseText) : {};
       } catch {
         throw new Error(
           `AI server returned an invalid response (${res.status})`
@@ -157,49 +132,28 @@ export default function AIMealSuggester({
         ? returnedSuggestions.filter((item) => Number(item.calories) <= 150)
         : returnedSuggestions;
 
-      if (
-        !result.success ||
-        safeSuggestions.length === 0
-      ) {
-        throw new Error(
-          'The AI returned no food suggestions.'
-        );
+      if (!result.success || safeSuggestions.length === 0) {
+        throw new Error('The AI returned no food suggestions.');
       }
 
       setSuggestions(safeSuggestions);
-
     } catch (err) {
-      console.error(
-        'Error fetching food suggestions:',
-        err
-      );
-
-      setError(
-        err.message ||
-        'Unable to generate food suggestions.'
-      );
-
+      console.error('Error fetching food suggestions:', err);
+      setError(err.message || 'Unable to generate food suggestions.');
     } finally {
       setLoading(false);
     }
   };
 
-  // --------------------------------------------------
-  // Log selected food to Supabase
-  // --------------------------------------------------
   const handleLogItem = async (foodItem, index) => {
     setLoggingId(index);
     setError('');
 
     try {
-      const {
-        data: { user }
-      } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
-        throw new Error(
-          'You must be logged in to log food.'
-        );
+        throw new Error('You must be logged in to log food.');
       }
 
       const { data, error } = await supabase
@@ -208,15 +162,10 @@ export default function AIMealSuggester({
           {
             user_id: user.id,
             logged_date: getLocalDateKey(),
-            
             food_name: foodItem.foodName,
-
             calories: Number(foodItem.calories) || 0,
-
             protein: Number(foodItem.protein) || 0,
-
             carbs: Number(foodItem.carbs) || 0,
-
             fat: Number(foodItem.fat) || 0
           }
         ])
@@ -230,47 +179,24 @@ export default function AIMealSuggester({
         onMealLogged(data[0]);
       }
 
-      // Remove logged suggestion
       setSuggestions((prev) =>
         prev.filter((_, i) => i !== index)
       );
-
     } catch (err) {
-      console.error(
-        'Failed to log food:',
-        err
-      );
-
-      setError(
-        err.message ||
-        'Failed to log this food.'
-      );
-
+      console.error('Failed to log food:', err);
+      setError(err.message || 'Failed to log this food.');
     } finally {
       setLoggingId(null);
     }
   };
 
-  // --------------------------------------------------
-  // Render
-  // --------------------------------------------------
-
   return (
     <div className="bg-slate-900 text-white p-4 sm:p-6 rounded-2xl shadow-md my-6">
-
-      {/* --------------------------------------------------
-          Header
-      -------------------------------------------------- */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-
         <div className="min-w-0">
-
           <h3 className="text-lg font-bold flex items-start gap-2 break-words">
             <span>{currentGoal.emoji}</span>
-
-            <span>
-              {currentGoal.title}
-            </span>
+            <span>{currentGoal.title}</span>
           </h3>
           <p className="text-xs text-gray-300 mt-1">
             {currentGoal.description}
@@ -278,37 +204,24 @@ export default function AIMealSuggester({
 
           <p className="text-xs text-gray-400 mt-2">
             Remaining today:{' '}
-
             <span className="text-emerald-400 font-bold">
               {remainingCalories} kcal
             </span>
-
             {' '}|{' '}
-
             <span className="text-emerald-400 font-bold">
               {remainingProtein}g protein
             </span>
           </p>
         </div>
 
-        {/* --------------------------------------------------
-            Suggest Button
-        -------------------------------------------------- */}
-
         <button
           onClick={fetchNextFoodSuggestions}
           disabled={loading}
           className="w-full sm:w-auto shrink-0 bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition disabled:opacity-50"
         >
-          {loading
-            ? 'Thinking...'
-            : currentGoal.button}
+          {loading ? 'Thinking...' : currentGoal.button}
         </button>
       </div>
-
-      {/* --------------------------------------------------
-          Error
-      -------------------------------------------------- */}
 
       {error && (
         <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-300 text-sm">
@@ -316,33 +229,22 @@ export default function AIMealSuggester({
         </div>
       )}
 
-      {/* --------------------------------------------------
-          Suggestions
-      -------------------------------------------------- */}
-
       {suggestions.length > 0 && (
         <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-3">
           {suggestions.map((item, index) => (
-
             <div
               key={`${item.foodName}-${index}`}
               className="bg-slate-800 border border-slate-700 p-4 rounded-xl flex flex-col justify-between min-w-0"
             >
-
               <div>
-                {/* Food name */}
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-2">
-
                   <h4 className="font-bold text-sm text-gray-100 break-words">
                     {item.foodName}
                   </h4>
-
                   <span className="self-start shrink-0 text-xs font-extrabold text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded-md">
                     {item.calories} kcal
                   </span>
                 </div>
-
-                {/* Description */}
 
                 {item.description && (
                   <p className="text-xs text-gray-400 leading-relaxed mb-3">
@@ -350,44 +252,27 @@ export default function AIMealSuggester({
                   </p>
                 )}
 
-                {/* Macros */}
-
                 <div className="flex flex-wrap gap-x-2 gap-y-1 text-[11px] text-gray-300">
-
                   <span>
                     P:{' '}
-                    <b className="text-white">
-                      {item.protein}g
-                    </b>
+                    <b className="text-white">{item.protein}g</b>
                   </span>
-
                   <span>
                     C:{' '}
-                    <b className="text-white">
-                      {item.carbs}g
-                    </b>
+                    <b className="text-white">{item.carbs}g</b>
                   </span>
-
                   <span>
                     F:{' '}
-                    <b className="text-white">
-                      {item.fat}g
-                    </b>
+                    <b className="text-white">{item.fat}g</b>
                   </span>
-
                 </div>
               </div>
-              {/* Log button */}
               <button
-                onClick={() =>
-                  handleLogItem(item, index)
-                }
+                onClick={() => handleLogItem(item, index)}
                 disabled={loggingId === index}
                 className="mt-3 w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-2 rounded-lg transition disabled:opacity-50"
               >
-                {loggingId === index
-                  ? 'Logging...'
-                  : '+ Log This Food'}
+                {loggingId === index ? 'Logging...' : '+ Log This Food'}
               </button>
             </div>
           ))}

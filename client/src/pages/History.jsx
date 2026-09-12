@@ -90,7 +90,7 @@ function History() {
       fat: result.fat + (Number(log.fat) || 0),
     }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
     const isFuture = dateKey > todayKey;
-    const achieved = !isFuture && totals.calories >= Number(goals.daily_calorie_goal);
+    const achieved = !isFuture && totals.calories >= Number(goals.calorie_goal);
 
     return { date, dateKey, totals, achieved, isFuture, mealCount: dayLogs.length };
   });
@@ -127,7 +127,7 @@ function History() {
         ) : (
           <section className="grid gap-4 md:grid-cols-2">
             {dailyHistory.map((day, index) => {
-              const caloriePercent = Math.min(100, Math.round((day.totals.calories / Number(goals.daily_calorie_goal)) * 100));
+              const caloriePercent = Math.min(100, Math.round((day.totals.calories / Number(goals.calorie_goal)) * 100));
               return (
                 <motion.article
                   key={day.dateKey}
@@ -149,7 +149,7 @@ function History() {
                   <div className="mb-4 flex min-w-0 items-end justify-between gap-3">
                     <div>
                       <p className="text-3xl font-bold text-strong-cyan">{day.totals.calories}</p>
-                      <p className="text-xs text-white/45">of {goals.daily_calorie_goal} kcal</p>
+                      <p className="text-xs text-white/45">of {goals.calorie_goal} kcal</p>
                     </div>
                     <p className="text-sm font-semibold text-white/60">{caloriePercent}%</p>
                   </div>
