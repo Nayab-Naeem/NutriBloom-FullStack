@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import { apiUrl } from '../lib/api';
 
 import {
   calculateBMI,
@@ -78,7 +79,7 @@ const OnboardingModal = ({ user, onComplete }) => {
       });
       const tdee = calculateTDEE(bmr, formData.activityLevel);
 
-      const response = await fetch('/api/nutrition-targets', {
+      const response = await fetch(apiUrl('/api/nutrition-targets'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -211,12 +212,9 @@ const OnboardingModal = ({ user, onComplete }) => {
         transition={{ duration: 0.28, ease: 'easeOut' }}
         className="relative flex w-full max-w-lg max-h-[92vh] flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/15"
       >
-        {/* Shared top accent — same on both steps */}
         <div className="h-1.5 w-full shrink-0 bg-gradient-to-r from-cyan-400 via-cyan-500 to-blue-500" />
 
-        {/* Shared header zone */}
         <div className="shrink-0 border-b border-slate-100 px-6 pb-4 pt-5 sm:px-8">
-          {/* Step indicator */}
           <div className="mb-4 flex items-center gap-3">
             <div className="flex items-center gap-2">
               <span
@@ -245,7 +243,6 @@ const OnboardingModal = ({ user, onComplete }) => {
             </div>
           </div>
 
-          {/* Shared title style for both steps */}
           <p className="text-xs font-semibold uppercase tracking-[0.15em] text-cyan-600">
             {step === 1 ? 'Get started' : 'Your results'}
           </p>
@@ -259,7 +256,6 @@ const OnboardingModal = ({ user, onComplete }) => {
           </p>
         </div>
 
-        {/* Scrollable body — same padding both steps */}
         <div className="flex-1 overflow-y-auto px-6 py-5 sm:px-8">
           <AnimatePresence mode="wait">
             {step === 1 && (
@@ -374,7 +370,6 @@ const OnboardingModal = ({ user, onComplete }) => {
 
             {step === 2 && calculatedResult && (
               <motion.div key="step2" {...stepTransition} className="space-y-3.5">
-                {/* BMI — same panel language as form fields */}
                 <div className={`${panelClass} text-center`}>
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Your BMI</p>
                   <p className="mt-1 text-4xl font-bold tracking-tight text-cyan-600">
@@ -383,7 +378,6 @@ const OnboardingModal = ({ user, onComplete }) => {
                   <p className="mt-1 text-sm font-medium text-slate-600">{calculatedResult.bmiCategory}</p>
                 </div>
 
-                {/* BMR / TDEE */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className={`${panelClass} text-center`}>
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">BMR</p>
@@ -397,7 +391,6 @@ const OnboardingModal = ({ user, onComplete }) => {
                   </div>
                 </div>
 
-                {/* Goal */}
                 <div
                   className="rounded-2xl px-4 py-3.5 text-white"
                   style={{
@@ -413,7 +406,6 @@ const OnboardingModal = ({ user, onComplete }) => {
                   <p className="mt-0.5 text-sm opacity-90">{goalMessage.desc}</p>
                 </div>
 
-                {/* Targets */}
                 <div className={panelClass}>
                   <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                     Daily nutrition targets
