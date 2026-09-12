@@ -22,7 +22,10 @@ router.post('/nutrition-targets', async (req, res) => {
       });
     }
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-3.6-flash',
+      generationConfig: { responseMimeType: 'application/json' },
+    });
     const prompt = `You are a registered nutrition expert. Calculate daily nutrition targets for this user:
 Age: ${age}
 Gender: ${gender}
@@ -73,7 +76,10 @@ router.post('/estimate-calories', async (req, res) => {
       });
     }
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-3.6-flash',
+      generationConfig: { responseMimeType: 'application/json' },
+    });
 
     const prompt = `You are a nutrition expert. 
 Estimate the nutrition for this food: "${description}".
@@ -204,6 +210,7 @@ Suggestions can be snacks, drinks, breakfast items or meals depending on the con
 
     const model = genAI.getGenerativeModel({
       model: 'gemini-3.6-flash',
+      generationConfig: { responseMimeType: 'application/json' },
     });
 
     const prompt = `
