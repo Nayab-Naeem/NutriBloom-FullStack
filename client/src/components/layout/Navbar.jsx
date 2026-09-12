@@ -3,32 +3,38 @@ import { Link, useLocation } from 'react-router-dom';
 export default function Navbar() {
   const location = useLocation();
 
+  const linkClass = (path) =>
+    `flex-1 rounded-lg px-3 py-2 text-center text-sm font-medium transition sm:flex-none ${
+      location.pathname === path
+        ? 'bg-[var(--bg-overlay)] text-strong-cyan shadow-sm'
+        : 'text-[var(--text-muted)] hover:bg-[var(--bg-overlay)] hover:text-[var(--text-primary)]'
+    }`;
+
   return (
-    <header className="flex flex-col gap-4 border-b border-white/10 px-3 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
-        <Link to="/dashboard" className="text-xl font-bold text-strong-cyan sm:text-2xl">
-          NutriBloom
-        </Link>
-        <nav className="flex w-full items-center gap-1 rounded-lg bg-black/30 p-1 text-sm sm:w-auto" aria-label="Main navigation">
+    <header className="sticky top-0 z-40 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/85 backdrop-blur-md">
+      <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
           <Link
             to="/dashboard"
-            className={`flex-1 rounded-md px-2 py-1.5 text-center transition hover:bg-white/10 sm:flex-none sm:px-3 ${location.pathname === '/dashboard' ? 'bg-white/10 text-strong-cyan' : 'text-white/70'}`}
+            className="text-xl font-bold tracking-tight text-strong-cyan sm:text-2xl"
           >
-            Dashboard
+            NutriBloom
           </Link>
-          <Link
-            to="/history"
-            className={`flex-1 rounded-md px-2 py-1.5 text-center transition hover:bg-white/10 sm:flex-none sm:px-3 ${location.pathname === '/history' ? 'bg-white/10 text-strong-cyan' : 'text-white/70'}`}
+          <nav
+            className="flex w-full items-center gap-1 rounded-xl bg-[var(--bg-overlay)] p-1 sm:w-auto"
+            aria-label="Main navigation"
           >
-            History
-          </Link>
-          <Link
-            to="/settings"
-            className={`flex-1 rounded-md px-2 py-1.5 text-center transition hover:bg-white/10 sm:flex-none sm:px-3 ${location.pathname === '/settings' ? 'bg-white/10 text-strong-cyan' : 'text-white/70'}`}
-          >
-            Settings
-          </Link>
-        </nav>
+            <Link to="/dashboard" className={linkClass('/dashboard')}>
+              Dashboard
+            </Link>
+            <Link to="/history" className={linkClass('/history')}>
+              History
+            </Link>
+            <Link to="/settings" className={linkClass('/settings')}>
+              Settings
+            </Link>
+          </nav>
+        </div>
       </div>
     </header>
   );
