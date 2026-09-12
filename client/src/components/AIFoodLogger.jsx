@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { getLocalDateKey } from '../utils/date';
 
 export default function AIFoodLogger({ onLogSuccess }) {
   const [input, setInput] = useState('');
@@ -37,6 +38,7 @@ export default function AIFoodLogger({ onLogSuccess }) {
         .from('food_logs')
         .insert([{
           user_id: user.id,
+          logged_date: getLocalDateKey(),
           food_name: aiResponse.items?.join(', ') || input.trim(),
           calories: Number(aiResponse.calories) || 0,
           protein: Number(aiResponse.protein) || 0,

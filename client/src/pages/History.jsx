@@ -2,15 +2,16 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import Navbar from '../components/layout/Navbar';
+import { getLocalDateKey } from '../utils/date';
 
 const defaultGoals = {
-  daily_calorie_goal: 2000,
-  daily_protein_goal: 150,
-  daily_carbs_goal: 200,
-  daily_fat_goal: 65,
+  calorie_goal: 2000,
+  protein_goal: 150,
+  carbs_goal: 200,
+  fat_goal: 65,
+  goal: 'maintain',
 };
 
-const getDateKey = (date) => date.toISOString().split('T')[0];
 
 const getWeekStart = () => {
   const date = new Date();
@@ -38,8 +39,8 @@ function History() {
     date.setDate(weekStart.getDate() + index);
     return date;
   }), [weekStart]);
-  const todayKey = getDateKey(new Date());
-  const weekEndKey = getDateKey(weekDays[6]);
+  const todayKey = getLocalDateKey();
+  const weekEndKey = getLocalDateKey(weekDays[6]);
   const weekLabel = `${formatDay(weekDays[0])} - ${formatDay(weekDays[6])}`;
 
   useEffect(() => {
@@ -55,11 +56,11 @@ function History() {
             .from('food_logs')
             .select('*')
             .eq('user_id', user.id)
-            .gte('logged_date', getDateKey(weekStart))
+            .gte('logged_date', getLocalDateKey(weekStart))
             .lte('logged_date', weekEndKey),
           supabase
             .from('profiles')
-            .select('daily_calorie_goal, daily_protein_goal, daily_carbs_goal, daily_fat_goal')
+            .select('calorie_goal, protein_goal, carbs_goal, fat_goal, goal')
             .eq('id', user.id)
             .single(),
         ]);
@@ -80,7 +81,7 @@ function History() {
   }, [weekEndKey, weekStart]);
 
   const dailyHistory = weekDays.map((date) => {
-    const dateKey = getDateKey(date);
+    const dateKey = getLocalDateKey(date);
     const dayLogs = logs.filter((log) => log.logged_date === dateKey);
     const totals = dayLogs.reduce((result, log) => ({
       calories: result.calories + (Number(log.calories) || 0),

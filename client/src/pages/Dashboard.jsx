@@ -3,13 +3,15 @@ import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import GrowthAnimation from '../components/modes/GrowthAnimation';
 import AIFoodLogger from '../components/AIFoodLogger';
-import DashboardFoodCard from '../components/DashboardFoodcard';
+import DashboardFoodCard from '../components/DashboardFoodCard';
 import AIMealSuggester from '../components/AIMealSuggester';
 import Navbar from '../components/layout/Navbar';
 import OnboardingModal from '../components/OnBoardingModal';
 import WeightGainComponent from '../components/WeightGainComponent';
 import WeightLossComponent from '../components/WeightLossComponent';
 import WeightMaintainComponent from '../components/WeightMaintainComponent';
+import { getLocalDateKey } from '../utils/date';
+
 
 function Dashboard() {
   const [foodItems, setFoodItems] = useState([]);
@@ -22,7 +24,7 @@ function Dashboard() {
   const [macros, setMacros] = useState({ protein: 150, carbs: 250, fat: 75 });
 
   // Today's Date String for Supabase query
-  const todayDate = new Date().toISOString().split('T')[0];
+  const todayDate = getLocalDateKey();
 
   // Calculate total calories eaten today
   const caloriesEaten = foodItems.reduce(
@@ -104,10 +106,12 @@ const fatPercentage = Math.min(
 
         // 2. Fetch today's food logs
         const { data: logs } = await supabase
-          .from('food_logs')
-          .select('*')
-          .eq('logged_date', todayDate)
-          .order('created_at', { ascending: false });
+  .from('food_logs')
+  .select('*')
+  .eq('user_id', currentUser.id)
+  .eq('logged_date', todayDate)
+  .order('created_at', { ascending: false });
+  
 
         if (logs) setFoodItems(logs);
       } catch (err) {

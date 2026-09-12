@@ -207,6 +207,8 @@ export default function AIMealSuggester({
         .insert([
           {
             user_id: user.id,
+            logged_date: getLocalDateKey(),
+            
             food_name: foodItem.foodName,
 
             calories: Number(foodItem.calories) || 0,
