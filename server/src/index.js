@@ -7,8 +7,30 @@ dotenv.config();
 
 const app = express();
 
-app.use(cors());
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:4173',
+  process.env.CLIENT_URL,
+].filter(Boolean);
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      // Allow non-browser tools (no Origin) and configured frontends
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS blocked for origin: ${origin}`));
+      }
+    },
+  })
+);
+
 app.use(express.json());
+
+app.get('/health', (_req, res) => {
+  res.json({ ok: true, service: 'nutribloom-api' });
+});
 
 app.use('/api', aiRoutes);
 
