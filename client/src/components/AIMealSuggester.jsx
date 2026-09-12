@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { apiUrl } from '../lib/api';
 import { getLocalDateKey } from '../utils/date';
 
 export default function AIMealSuggester({
@@ -86,7 +87,7 @@ export default function AIMealSuggester({
     setSuggestions([]);
     setError('');
     try {
-      const res = await fetch('/api/ai/suggest-meal', {
+      const res = await fetch(apiUrl('/api/ai/suggest-meal'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
