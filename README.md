@@ -16,9 +16,9 @@ NutriBloom is a full-stack nutrition tracker that turns a user's profile and foo
 | ![Sign In](./assets/screenshots/ss.png) | ![Details Modal](./assets/screenshots/ss1.png) | ![Result Modal](./assets/screenshots/ss2.png) | 
 
 
-| Dashboard | AI Food Logger section | Food Log |
-| --- | --- | --- |
-| ![Dashboard](./assets/screenshots/ss3.png) | ![AI Food Logger section](./assets/screenshots/ss4.png) | ![Food Log](./assets/screenshots/ss5.png) | 
+| Dashboard | AI Food Logger section | Food Log | Suggestion |
+| --- | --- | --- | --- |
+| ![Dashboard](./assets/screenshots/ss3.png) | ![AI Food Logger section](./assets/screenshots/ss4.png) | ![Food Log](./assets/screenshots/ss5.png) |  ![Suggestion](./assets/screenshots/ss6.png) |
 
 | Setting | History | 
 | --- | --- |
